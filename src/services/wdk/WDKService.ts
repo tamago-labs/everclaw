@@ -1,0 +1,143 @@
+// WDK Service - Wallet management using WDK with EVM and Solana support
+
+// @ts-ignore - WDK is an ESM module with default export
+import WDKModule from '@tetherto/wdk';
+// @ts-ignore - Wallet managers are ESM modules
+import WalletManagerEvmModule from '@tetherto/wdk-wallet-evm';
+// @ts-ignore - Wallet managers are ESM modules  
+import WalletManagerSolanaModule from '@tetherto/wdk-wallet-solana';
+// @ts-ignore - Wallet managers are ESM modules  
+import WalletManagerBtcModule from '@tetherto/wdk-wallet-btc';
+
+import type { AccountInfo } from './types';
+
+// Handle ESM default exports
+const WDK = (WDKModule as any).default || WDKModule;
+const WalletManagerEvm = (WalletManagerEvmModule as any).default || WalletManagerEvmModule;
+const WalletManagerSolana = (WalletManagerSolanaModule as any).default || WalletManagerSolanaModule;
+const WalletManagerBtc = (WalletManagerBtcModule as any).default || WalletManagerBtcModule;
+
+let wdkInstance: any = null;
+
+const CHAINS = ['ethereum', 'solana', 'bitcoin'] as const;
+
+export class WDKService {
+    /**
+     * Generate a new BIP-39 mnemonic phrase
+     */
+    generateMnemonic(words: 12 | 24 = 12): string {
+        return WDK.getRandomSeedPhrase(words);
+    }
+
+    /**
+     * Validate a seed phrase
+     */
+    isValidSeedPhrase(seedPhrase: string): boolean {
+        return WDK.isValidSeed(seedPhrase);
+    }
+
+    /**
+     * Initialize WDK with a seed phrase and register chain wallets
+     */
+    initializeWithSeed(seedPhrase: string): any {
+        wdkInstance = new WDK(seedPhrase)
+            .registerWallet('ethereum', WalletManagerEvm, {
+                provider: 'https://eth.drpc.org',
+            })
+            .registerWallet('solana', WalletManagerSolana, {
+                rpcUrl: 'https://api.mainnet-beta.solana.com',
+            })
+            .registerWallet('bitcoin', WalletManagerBtc, {
+                provider: 'https://blockstream.info/api'
+            });
+
+        return wdkInstance;
+    }
+
+    /**
+     * Get the current WDK instance
+     */
+    getInstance(): any {
+        return wdkInstance;
+    }
+
+    /**
+     * Check if WDK is initialized
+     */
+    isInitialized(): boolean {
+        return wdkInstance !== null;
+    }
+
+    /**
+     * Get all derived accounts
+     */
+    async getAccounts(): Promise<AccountInfo[]> {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+
+        const accounts: AccountInfo[] = [];
+
+        for (const chain of CHAINS) {
+            try {
+                const account = await wdkInstance.getAccount(chain, 0);
+                const address = await account.getAddress();
+                accounts.push({
+                    chain,
+                    chainId: chain === 'ethereum' ? 'eip155:1' : (chain === 'bitcoin' ? "bip122:000000000019d6689c085ae165831e93" : 'solana:mainnet'),
+                    address,
+                });
+            } catch (e) {
+                console.warn(`${chain} account not available:`, e);
+            }
+        }
+
+        return accounts;
+    }
+
+    /**
+     * Get native balance for a chain
+     */
+    async getBalance(chain: 'ethereum' | 'solana' | 'bitcoin'): Promise<string> {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+        const account = await wdkInstance.getAccount(chain, 0);
+        return account.getBalance();
+    }
+
+    /**
+     * Get address for a specific chain
+     */
+    async getAddress(chain: 'ethereum' | 'solana' | 'bitcoin'): Promise<string> {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+        const account = await wdkInstance.getAccount(chain, 0);
+        return account.getAddress();
+    }
+ 
+    /**
+     * Sign a message on EVM
+     */
+    async signMessageEvm(message: string): Promise<string> {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+        const account = await wdkInstance.getAccount('ethereum', 0);
+        return account.sign(message);
+    }
+
+    /**
+     * Sign a message on Solana
+     */
+    async signMessageSolana(message: string): Promise<string> {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+        const account = await wdkInstance.getAccount('solana', 0);
+        return account.sign(message);
+    }
+
+    /**
+     * Dispose all sensitive data from memory
+     */
+    dispose(): void {
+        if (wdkInstance) {
+            wdkInstance.dispose();
+            wdkInstance = null;
+        }
+    }
+}
+
+export const wdkService = new WDKService();

@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 const routeMeta: Record<string, { category: string; label: string }> = {
   '/': { category: 'Control', label: 'Overview' },
-  '/settings': { category: 'Everclaw', label: 'Settings' },
+  '/settings': { category: 'Settings', label: 'Settings' },
   '/chat': { category: 'Chat', label: 'Chat' },
   '/sessions': { category: 'Control', label: 'Sessions' },
   '/usage': { category: 'Control', label: 'Usage' },

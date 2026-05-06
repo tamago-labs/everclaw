@@ -14,26 +14,21 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     ipcRenderer.on('theme:changed', callback);
     return () => ipcRenderer.removeListener('theme:changed', callback);
   },
-//   onMenuNewChat: (callback: () => void) => {
-//     ipcRenderer.on('menu:new-chat', callback);
-//     return () => ipcRenderer.removeListener('menu:new-chat', callback);
-//   },
 
   // WDK Wallet operations
-//   wdk: {
-//     getStatus: () => ipcRenderer.invoke('wdk:getStatus'),
-//     generateMnemonic: (words?: 12 | 24) => ipcRenderer.invoke('wdk:generateMnemonic', words),
-//     validateSeedPhrase: (seedPhrase: string) => ipcRenderer.invoke('wdk:validateSeedPhrase', seedPhrase),
-//     createWallet: (words?: 12 | 24) => ipcRenderer.invoke('wdk:createWallet', words),
-//     restoreWallet: (seedPhrase: string) => ipcRenderer.invoke('wdk:restoreWallet', seedPhrase),
-//     initializeFromStored: () => ipcRenderer.invoke('wdk:initializeFromStored'),
-//     deleteWallet: () => ipcRenderer.invoke('wdk:deleteWallet'),
-//     revealSeedPhrase: () => ipcRenderer.invoke('wdk:revealSeedPhrase'),
-//     getAccounts: () => ipcRenderer.invoke('wdk:getAccounts'),
-//     getEvmAddress: () => ipcRenderer.invoke('wdk:getEvmAddress'),
-//     getSolanaAddress: () => ipcRenderer.invoke('wdk:getSolanaAddress'),
-//     getBalance: (chain: 'ethereum' | 'solana') => ipcRenderer.invoke('wdk:getBalance', chain),
-//     signMessageEvm: (message: string) => ipcRenderer.invoke('wdk:signMessageEvm', message),
-//     signMessageSolana: (message: string) => ipcRenderer.invoke('wdk:signMessageSolana', message),
-//   },
+  wdk: {
+    getStatus: () => ipcRenderer.invoke('wdk:getStatus'),
+    generateMnemonic: (words?: 12 | 24) => ipcRenderer.invoke('wdk:generateMnemonic', words),
+    validateSeedPhrase: (seedPhrase: string) => ipcRenderer.invoke('wdk:validateSeedPhrase', seedPhrase),
+    createWallet: (words?: 12 | 24) => ipcRenderer.invoke('wdk:createWallet', words),
+    restoreWallet: (seedPhrase: string) => ipcRenderer.invoke('wdk:restoreWallet', seedPhrase),
+    initializeFromStored: () => ipcRenderer.invoke('wdk:initializeFromStored'),
+    deleteWallet: () => ipcRenderer.invoke('wdk:deleteWallet'),
+    revealSeedPhrase: () => ipcRenderer.invoke('wdk:revealSeedPhrase'),
+    getAccounts: () => ipcRenderer.invoke('wdk:getAccounts'),
+    getAddress: (chain: 'ethereum' | 'solana' | 'bitcoin') => ipcRenderer.invoke('wdk:getAddress', chain),
+    getBalance: (chain: 'ethereum' | 'solana' | 'bitcoin') => ipcRenderer.invoke('wdk:getBalance', chain),
+    signMessageEvm: (message: string) => ipcRenderer.invoke('wdk:signMessageEvm', message),
+    signMessageSolana: (message: string) => ipcRenderer.invoke('wdk:signMessageSolana', message),
+  },
 });

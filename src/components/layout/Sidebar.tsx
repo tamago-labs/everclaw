@@ -3,12 +3,11 @@ import {
   MessageSquare,
   LayoutDashboard,
   MonitorSmartphone,
-  BarChart3,
   Clock,
   Bot,
   Zap,
   Settings,
-  Mouse
+  Crown
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -61,7 +60,7 @@ export default function Sidebar() {
       <div className="px-6 pt-6 pb-8">
         <div className="flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-xl bg-accent-primary flex items-center justify-center shrink-0 shadow-[0_0_20px_var(--color-glow-green)]">
-            <Mouse size={28} className="text-[#0F1117] -scale-x-100" strokeWidth={2} />
+            <Crown size={24} className="text-[#0F1117] -scale-x-100" strokeWidth={2} />
           </div>
           <div>
 
