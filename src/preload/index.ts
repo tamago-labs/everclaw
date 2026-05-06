@@ -1,5 +1,3 @@
-// See the Electron documentation for details on how to use preload scripts:
-// https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer } from 'electron';
 
 // Expose protected methods that allow the renderer process to use
@@ -30,5 +28,13 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     getBalance: (chain: 'ethereum' | 'solana' | 'bitcoin') => ipcRenderer.invoke('wdk:getBalance', chain),
     signMessageEvm: (message: string) => ipcRenderer.invoke('wdk:signMessageEvm', message),
     signMessageSolana: (message: string) => ipcRenderer.invoke('wdk:signMessageSolana', message),
+  },
+
+  // AI (QVAC) operations
+  ai: {
+    getStatus: () => ipcRenderer.invoke('ai:getStatus'),
+    loadModel: () => ipcRenderer.invoke('ai:loadModel'),
+    sendPrompt: (message: string) => ipcRenderer.invoke('ai:sendPrompt', message),
+    unloadModel: () => ipcRenderer.invoke('ai:unloadModel'),
   },
 });

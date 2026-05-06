@@ -1,5 +1,6 @@
-// WDK Service - Exports
-export { WDKService, wdkService } from './WDKService';
+// WDK Service exports
+export { wdkService, WDKService } from './WDKService';
+export type { AccountInfo, WalletStatus, ChainFamily } from './types';
 export { 
   isEncryptionAvailable, 
   isSeedStored, 
@@ -8,4 +9,3 @@ export {
   deleteStoredSeed,
   getStorageBackend 
 } from './storage';
-export * from './types';

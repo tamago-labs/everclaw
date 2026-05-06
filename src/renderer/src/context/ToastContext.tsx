@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, Info, AlertTriangle } from 'lucide-react';
-import { useTheme } from './ThemeContext';
+import { Check, X, Info, AlertTriangle } from 'lucide-react'; 
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -17,8 +16,7 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | null>(null);
 
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const { isDark } = useTheme();
+export function ToastProvider({ children }: { children: ReactNode }) { 
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = useCallback((message: string, type: ToastType = 'success') => {

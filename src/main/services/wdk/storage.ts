@@ -73,6 +73,14 @@ export function deleteStoredSeed(): void {
  * Get the storage backend name (for debugging/display purposes)
  * Returns: 'gnome_libsecret', 'kwallet5', 'basic_text', etc.
  */
+// export function getStorageBackend(): string {
+//   return safeStorage.getSelectedStorageBackend();
+// }
+
 export function getStorageBackend(): string {
-  return safeStorage.getSelectedStorageBackend();
+  if (!safeStorage.isEncryptionAvailable()) {
+    return 'none'
+  }
+
+  return 'safeStorage'
 }

@@ -4,9 +4,9 @@
 import WDKModule from '@tetherto/wdk';
 // @ts-ignore - Wallet managers are ESM modules
 import WalletManagerEvmModule from '@tetherto/wdk-wallet-evm';
-// @ts-ignore - Wallet managers are ESM modules  
+// @ts-ignore - Wallet managers are ESM modules
 import WalletManagerSolanaModule from '@tetherto/wdk-wallet-solana';
-// @ts-ignore - Wallet managers are ESM modules  
+// @ts-ignore - Wallet managers are ESM modules
 import WalletManagerBtcModule from '@tetherto/wdk-wallet-btc';
 
 import type { AccountInfo } from './types';
