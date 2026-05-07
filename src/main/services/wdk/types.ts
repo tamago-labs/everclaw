@@ -11,4 +11,4 @@ export interface WalletStatus {
   storageBackend?: string;
 }
 
-export type ChainFamily = 'ethereum' | 'solana' | 'bitcoin';
+export type ChainFamily = 'ethereum' | 'polygon' | 'arbitrum' | 'solana' | 'bitcoin';

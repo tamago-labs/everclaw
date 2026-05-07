@@ -166,7 +166,7 @@ function registerWDKIpcHandlers(): void {
   });
 
   // Get address for a specific chain
-  ipcMain.handle('wdk:getAddress', async (_event, chain: 'ethereum' | 'solana' | 'bitcoin') => {
+  ipcMain.handle('wdk:getAddress', async (_event, chain: 'ethereum' | 'polygon' | 'arbitrum' | 'solana' | 'bitcoin') => {
     try {
       return await wdkService.getAddress(chain);
     } catch (error) {
@@ -175,8 +175,8 @@ function registerWDKIpcHandlers(): void {
     }
   });
 
-  // Balance - supports all three chains
-  ipcMain.handle('wdk:getBalance', async (_event, chain: 'ethereum' | 'solana' | 'bitcoin') => {
+  // Balance - supports all chains
+  ipcMain.handle('wdk:getBalance', async (_event, chain: 'ethereum' | 'polygon' | 'arbitrum' | 'solana' | 'bitcoin') => {
     try {
       return await wdkService.getBalance(chain);
     } catch (error) {

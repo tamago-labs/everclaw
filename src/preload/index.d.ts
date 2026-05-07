@@ -43,8 +43,8 @@ interface EverclawAPI {
     deleteWallet: () => Promise<boolean>;
     revealSeedPhrase: () => Promise<string>;
     getAccounts: () => Promise<AccountInfo[]>;
-    getAddress: (chain: 'ethereum' | 'solana' | 'bitcoin') => Promise<string>;
-    getBalance: (chain: 'ethereum' | 'solana' | 'bitcoin') => Promise<string>;
+    getAddress: (chain: 'ethereum' | 'polygon' | 'arbitrum' | 'solana' | 'bitcoin') => Promise<string>;
+    getBalance: (chain: 'ethereum' | 'polygon' | 'arbitrum' | 'solana' | 'bitcoin') => Promise<string>;
     signMessageEvm: (message: string) => Promise<string>;
     signMessageSolana: (message: string) => Promise<string>;
   };

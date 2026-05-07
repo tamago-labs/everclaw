@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 
 interface WalletAddress {
-  chain: 'Solana' | 'Ethereum' | 'Bitcoin';
+  chain: 'Ethereum' | 'Polygon' | 'Arbitrum' | 'Solana' | 'Bitcoin';
   address: string;
 }
 
@@ -14,25 +14,37 @@ interface AccountCardProps {
   isPlaceholder?: boolean;
 }
 
-// Default placeholder addresses in order: Solana, Bitcoin, Ethereum
+// Default placeholder addresses in order
 const PLACEHOLDER_ADDRESSES: WalletAddress[] = [
+  { chain: 'Ethereum', address: '...' },
+  { chain: 'Polygon', address: '...' },
+  { chain: 'Arbitrum', address: '...' },
   { chain: 'Solana', address: '...' },
   { chain: 'Bitcoin', address: '...' },
-  { chain: 'Ethereum', address: '...' },
 ];
+
+const chainImages = {
+  Ethereum: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png',
+  Polygon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/28321.png',
+  Arbitrum: 'https://assets.coingecko.com/coins/images/16547/standard/arb.jpg?1721358242',
+  Solana: 'https://icons.llamao.fi/icons/chains/rsz_solana?w=48&h=48',
+  Bitcoin: 'https://assets.coingecko.com/coins/images/1/standard/bitcoin.png?1696501400',
+};
+
+const DEFAULT_CHAINS = ['Ethereum', 'Solana', 'Bitcoin'] as const;
 
 export default function AccountCard({ addresses, isPlaceholder = false }: AccountCardProps) {
   const { isDark } = useTheme();
   const { showToast } = useToast();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const displayAddresses = isPlaceholder ? PLACEHOLDER_ADDRESSES : addresses;
-
-  const chainImages = {
-    Solana: 'https://icons.llamao.fi/icons/chains/rsz_solana?w=48&h=48',
-    Ethereum: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png',
-    Bitcoin: 'https://assets.coingecko.com/coins/images/1/standard/bitcoin.png?1696501400',
-  };
+  
+  // Filter addresses based on showAll state
+  const visibleAddresses = showAll 
+    ? displayAddresses 
+    : displayAddresses.filter(addr => DEFAULT_CHAINS.includes(addr.chain as typeof DEFAULT_CHAINS[number]));
 
   const truncateAddress = (address: string) => {
     if (address.length <= 16) return address;
@@ -93,7 +105,7 @@ export default function AccountCard({ addresses, isPlaceholder = false }: Accoun
 
         {/* Wallet addresses list */}
         <div className="space-y-3">
-          {displayAddresses.map((wallet, index) => (
+          {visibleAddresses.map((wallet, index) => (
             <div 
               key={wallet.chain}
               className={`flex items-center justify-between p-3 rounded-xl ${
@@ -154,6 +166,16 @@ export default function AccountCard({ addresses, isPlaceholder = false }: Accoun
             </div>
           ))}
         </div>
+
+        {/* Show all toggle */}
+        {!isPlaceholder && displayAddresses.length > DEFAULT_CHAINS.length && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="mt-4 text-sm text-accent-primary hover:text-accent-primary/80 transition-colors"
+          >
+            {showAll ? 'Show less' : 'Show all'}
+          </button>
+        )}
       </div>
     </motion.div>
   );

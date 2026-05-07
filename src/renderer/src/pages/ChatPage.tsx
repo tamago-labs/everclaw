@@ -12,6 +12,7 @@ interface Message {
 }
 
 export default function ChatPage() {
+  
   const { isLoading, isReady, error, sendMessage } = useAI();
   const { isDark } = useTheme();
   const [messages, setMessages] = useState<Message[]>([]);

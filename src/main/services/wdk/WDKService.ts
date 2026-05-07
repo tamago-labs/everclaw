@@ -19,7 +19,15 @@ const WalletManagerBtc = (WalletManagerBtcModule as any).default || WalletManage
 
 let wdkInstance: any = null;
 
-const CHAINS = ['ethereum', 'solana', 'bitcoin'] as const;
+const CHAINS = ['ethereum', 'polygon', 'arbitrum', 'solana', 'bitcoin'] as const;
+
+const CHAIN_IDS: Record<string, string> = {
+  ethereum: 'eip155:1',
+  polygon: 'eip155:137',
+  arbitrum: 'eip155:42161',
+  solana: 'solana:mainnet',
+  bitcoin: 'bip122:000000000019d6689c085ae165831e93',
+};
 
 export class WDKService {
     /**
@@ -43,6 +51,12 @@ export class WDKService {
         wdkInstance = new WDK(seedPhrase)
             .registerWallet('ethereum', WalletManagerEvm, {
                 provider: 'https://eth.drpc.org',
+            })
+            .registerWallet('polygon', WalletManagerEvm, {
+                provider: 'https://polygon.drpc.org',
+            })
+            .registerWallet('arbitrum', WalletManagerEvm, {
+                provider: 'https://arbitrum.drpc.org',
             })
             .registerWallet('solana', WalletManagerSolana, {
                 rpcUrl: 'https://api.mainnet-beta.solana.com',
@@ -82,7 +96,7 @@ export class WDKService {
                 const address = await account.getAddress();
                 accounts.push({
                     chain,
-                    chainId: chain === 'ethereum' ? 'eip155:1' : (chain === 'bitcoin' ? "bip122:000000000019d6689c085ae165831e93" : 'solana:mainnet'),
+                    chainId: CHAIN_IDS[chain] || '',
                     address,
                 });
             } catch (e) {
@@ -96,7 +110,7 @@ export class WDKService {
     /**
      * Get native balance for a chain
      */
-    async getBalance(chain: 'ethereum' | 'solana' | 'bitcoin'): Promise<string> {
+    async getBalance(chain: 'ethereum' | 'polygon' | 'arbitrum' | 'solana' | 'bitcoin'): Promise<string> {
         if (!wdkInstance) throw new Error('WDK not initialized');
         const account = await wdkInstance.getAccount(chain, 0);
         return account.getBalance();
@@ -105,7 +119,7 @@ export class WDKService {
     /**
      * Get address for a specific chain
      */
-    async getAddress(chain: 'ethereum' | 'solana' | 'bitcoin'): Promise<string> {
+    async getAddress(chain: 'ethereum' | 'polygon' | 'arbitrum' | 'solana' | 'bitcoin'): Promise<string> {
         if (!wdkInstance) throw new Error('WDK not initialized');
         const account = await wdkInstance.getAccount(chain, 0);
         return account.getAddress();
