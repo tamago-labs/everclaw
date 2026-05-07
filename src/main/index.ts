@@ -9,6 +9,7 @@ import {
 } from '@qvac/sdk'; 
 import { wdkService } from './services/wdk';
 import * as storage from './services/wdk/storage';
+import { registerAgentsIpcHandlers, initAgents } from './services/agents';
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -295,6 +296,12 @@ app.whenReady().then(async () => {
     }
   }
 
+  // Initialize agents (create main agent if not exists)
+  initAgents();
+  
+  // Register agents IPC handlers
+  registerAgentsIpcHandlers();
+  
   // Register IPC handlers
   registerWDKIpcHandlers();
   registerQVACIpcHandlers();

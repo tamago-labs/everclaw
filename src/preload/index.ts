@@ -37,4 +37,13 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     sendPrompt: (message: string) => ipcRenderer.invoke('ai:sendPrompt', message),
     unloadModel: () => ipcRenderer.invoke('ai:unloadModel'),
   },
+
+  // Agents operations
+  agents: {
+    list: () => ipcRenderer.invoke('agents:list'),
+    create: (name: string) => ipcRenderer.invoke('agents:create', name),
+    delete: (slug: string) => ipcRenderer.invoke('agents:delete', slug),
+    get: (slug: string) => ipcRenderer.invoke('agents:get', slug),
+    init: () => ipcRenderer.invoke('agents:init'),
+  },
 });

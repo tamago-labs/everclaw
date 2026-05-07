@@ -118,10 +118,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     const init = async () => {
-      try {
-        console.log("in Initial load...")
-        const status = await window.everclawAPI.wdk.getStatus();
-         console.log("after Initial load...", status)
+      try { 
+        const status = await window.everclawAPI.wdk.getStatus(); 
         if (status.hasStoredSeed && !status.isInitialized) {
           await window.everclawAPI.wdk.initializeFromStored();
         }
