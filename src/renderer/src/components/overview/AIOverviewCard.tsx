@@ -29,6 +29,7 @@ export default function AIOverviewCard() {
   const { isReady, startTime } = useAI();
   const { isDark } = useTheme();
   const [uptime, setUptime] = useState('--');
+  const [sessionsCount, setSessionsCount] = useState('--');
 
   useEffect(() => {
     if (startTime) {
@@ -38,6 +39,28 @@ export default function AIOverviewCard() {
     }
   }, [startTime]);
 
+  // Fetch session count
+  useEffect(() => {
+    async function fetchSessionsCount() {
+      try {
+        const agents: any[] = await (window as any).everclawAPI.agents.list();
+        let totalSessions = 0;
+        
+        for (const agent of agents) {
+          const sessions: string[] = await (window as any).everclawAPI.sessions.list(agent.slug);
+          totalSessions += sessions.length;
+        }
+        
+        setSessionsCount(totalSessions.toString());
+      } catch (error) {
+        console.error('Failed to fetch sessions count:', error);
+        setSessionsCount('0');
+      }
+    }
+
+    fetchSessionsCount();
+  }, []);
+
   const handleShowLogs = () => {
     navigate('/settings');
   };
@@ -46,7 +69,7 @@ export default function AIOverviewCard() {
     { label: 'Status', value: isReady ? 'Ready' : 'Loading...' },
     { label: 'Model', value: isReady ? 'Llama-3.2-1B-Instruct' : '--' },
     { label: 'Uptime', value: uptime },
-    { label: 'Sessions', value: '0' }
+    { label: 'Sessions', value: sessionsCount }
   ];
 
   return (

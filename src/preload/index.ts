@@ -62,5 +62,6 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     ensureMain: (agentSlug: string) => ipcRenderer.invoke('sessions:ensureMain', agentSlug),
     saveMessages: (agentSlug: string, sessionSlug: string, messages: any[]) => ipcRenderer.invoke('sessions:saveMessages', agentSlug, sessionSlug, messages),
     loadMessages: (agentSlug: string, sessionSlug: string) => ipcRenderer.invoke('sessions:loadMessages', agentSlug, sessionSlug),
+    getAllSessions: () => ipcRenderer.invoke('sessions:getAllSessions'),
   },
 });

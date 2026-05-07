@@ -1,8 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { getAgentsPath } from '../agents/storage';
+import { getAgentsPath, getAgentsList } from '../agents/storage';
 
 const SESSIONS_DIR = 'sessions';
+
+export { getAgentsList };
 
 export function getSessionsPath(agentSlug: string): string {
   return path.join(getAgentsPath(), agentSlug, SESSIONS_DIR);
@@ -74,5 +76,31 @@ export function loadMessages(agentSlug: string, sessionSlug: string): any[] {
     return JSON.parse(content);
   } catch {
     return [];
+  }
+}
+
+export function getSessionMetadata(agentSlug: string, sessionSlug: string): { created: Date; lastActive: Date } | null {
+  const sessionPath = path.join(getSessionsPath(agentSlug), sessionSlug);
+  
+  if (!fs.existsSync(sessionPath)) {
+    return null;
+  }
+  
+  try {
+    const stats = fs.statSync(sessionPath);
+    const messagesPath = path.join(sessionPath, 'messages.json');
+    
+    let lastActive = stats.ctime;
+    if (fs.existsSync(messagesPath)) {
+      const msgStats = fs.statSync(messagesPath);
+      lastActive = msgStats.mtime;
+    }
+    
+    return {
+      created: stats.birthtime,
+      lastActive: lastActive,
+    };
+  } catch {
+    return null;
   }
 }

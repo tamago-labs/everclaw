@@ -108,6 +108,46 @@ export function registerSessionsIpcHandlers(): void {
     }
   });
 
+  // Get all sessions with metadata (for SessionsPage)
+  ipcMain.handle('sessions:getAllSessions', async () => {
+    try {
+      const agents = storage.getAgentsList();
+      const allSessions: any[] = [];
+
+      for (const agentSlug of agents) {
+        const sessions = storage.getSessionsList(agentSlug);
+        for (const sessionSlug of sessions) {
+          const metadata = storage.getSessionMetadata(agentSlug, sessionSlug);
+          const messages = storage.loadMessages(agentSlug, sessionSlug);
+          
+          // Count tokens from messages
+          let tokenCount = 0;
+          for (const msg of messages) {
+            tokenCount += (msg.content?.length || 0);
+          }
+
+          allSessions.push({
+            key: `agent:${agentSlug}:${sessionSlug}`,
+            agent: agentSlug,
+            session: sessionSlug,
+            created: metadata?.created ? metadata.created.toISOString() : new Date().toISOString(),
+            lastActive: metadata?.lastActive ? metadata.lastActive.toISOString() : new Date().toISOString(),
+            tokens: tokenCount,
+            compaction: 'auto',
+          });
+        }
+      }
+
+      // Sort by lastActive (most recent first)
+      allSessions.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
+
+      return allSessions;
+    } catch (error) {
+      console.error('Failed to get all sessions:', error);
+      throw error;
+    }
+  });
+
   console.log('Sessions IPC handlers registered');
 }
 
