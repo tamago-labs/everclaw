@@ -23,10 +23,7 @@ export default function SettingsTabs({ activeTab, onTabChange }: SettingsTabsPro
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
         }}
-      >
-        {/* Colored accent glow */}
-        <div className={`absolute -top-12 -left-12 w-32 h-32 rounded-full bg-accent-primary blur-3xl ${isDark ? 'opacity-20' : 'opacity-15'}`} />
-        
+      > 
         {/* Glass shine effect */}
         <div className={`absolute inset-0 rounded-2xl ${
           isDark 
@@ -46,8 +43,8 @@ export default function SettingsTabs({ activeTab, onTabChange }: SettingsTabsPro
             onClick={() => onTabChange('about')}
             className={`relative px-5 py-2.5 font-medium text-sm transition-all ${
               activeTab === 'about'
-                ? 'text-white'
-                : 'text-gray-400 hover:text-white'
+                ? isDark ? 'text-white' : 'text-gray-900'
+                : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             About
@@ -59,8 +56,8 @@ export default function SettingsTabs({ activeTab, onTabChange }: SettingsTabsPro
             onClick={() => onTabChange('wallet')}
             className={`relative px-5 py-2.5 font-medium text-sm transition-all ${
               activeTab === 'wallet'
-                ? 'text-white'
-                : 'text-gray-400 hover:text-white'
+                ? isDark ? 'text-white' : 'text-gray-900'
+                : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             Wallet

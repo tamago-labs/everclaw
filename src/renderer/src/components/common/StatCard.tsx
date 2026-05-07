@@ -22,8 +22,7 @@ export default function StatCard({ title, value, subtitle, icon: Icon, accentCol
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.02 }}
+      animate={{ opacity: 1, y: 0 }} 
       className={`relative overflow-hidden rounded-2xl p-6 ${
         isDark 
           ? 'border border-white/10' 

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Wallet } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function WelcomeCard() {
@@ -42,26 +42,22 @@ export default function WelcomeCard() {
       <div className="flex items-start justify-between relative z-10">
         <div className="flex-1">
           <h2 className={`text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            Welcome to Everclaw!
+            Welcome to Everclaw
           </h2>
           <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Create a wallet to get started. Your assets are secured with WDK.
+            Create a wallet to start using private local AI agents for Solana and Ethereum
           </p>
           
           {/* Setup Wallet Link */}
           <a
             href="#/setup-wallet"
-            className={`inline-flex items-center gap-2 font-medium text-sm transition-colors ${
-              isDark ? 'text-accent-primary hover:text-accent-primary/80' : 'text-amber-500 hover:text-amber-600'
-            }`}
+            className={`inline-flex items-center gap-2 font-medium text-sm transition-colors text-accent-primary hover:text-accent-primary/80`}
           >
             Setup Wallet
           </a>
           <a
             href="#/chat"
-            className={`ml-4 inline-flex items-center gap-2 font-medium text-sm transition-colors ${
-              isDark ? 'text-accent-primary hover:text-accent-primary/80' : 'text-amber-500 hover:text-amber-600'
-            }`}
+            className={`ml-4 inline-flex items-center gap-2 font-medium text-sm transition-colors text-accent-primary hover:text-accent-primary/80`}
           >
             Try Chat
           </a>
@@ -74,7 +70,7 @@ export default function WelcomeCard() {
           {/* Solid circle */}
           <div className={`absolute inset-0 rounded-2xl ${isDark ? 'bg-[var(--color-bg-elevated)]' : 'bg-white'} ${isDark ? 'border border-white/10' : 'border border-black/10'} shadow-sm`} />
           {/* Icon */}
-          <Wallet size={24} className={`relative z-10 ${isDark ? 'text-white' : 'text-gray-700'}`} />
+          <Crown size={24} className={`relative z-10 ${isDark ? 'text-white' : 'text-gray-700'}`} />
         </div>
       </div>
     </motion.div>

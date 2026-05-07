@@ -97,7 +97,7 @@ export default function ChatPage() {
         }}>
           <Loader2 className="w-8 h-8 animate-spin text-accent-primary mb-4" />
           <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-            Loading AI model...
+            Preparing AI model...
           </p>
         </div>
       )}
