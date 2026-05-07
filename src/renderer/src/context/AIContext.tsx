@@ -1,12 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-
-
 interface AIContextType {
   isLoading: boolean;
   isReady: boolean;
   error: string | null;
   sendMessage: (message: string) => Promise<string>;
+  startTime: Date | null;
 }
 
 const AIContext = createContext<AIContextType | null>(null);
@@ -19,6 +18,7 @@ export function AIProvider({ children }: AIProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<Date | null>(null);
 
   // Check AI status on mount
   useEffect(() => {
@@ -39,6 +39,12 @@ export function AIProvider({ children }: AIProviderProps) {
     const interval = setInterval(async () => {
       try {
         const status = await (window as any).everclawAPI.ai.getStatus();
+        
+        // Track when AI becomes ready
+        if (status.isReady && !isReady) {
+          setStartTime(new Date());
+        }
+        
         setIsReady(status.isReady);
       } catch {
         // Ignore errors during polling
@@ -46,7 +52,7 @@ export function AIProvider({ children }: AIProviderProps) {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isReady]);
 
   const sendMessage = async (message: string): Promise<string> => {
     try {
@@ -64,7 +70,7 @@ export function AIProvider({ children }: AIProviderProps) {
   };
 
   return (
-    <AIContext.Provider value={{ isLoading, isReady, error, sendMessage }}>
+    <AIContext.Provider value={{ isLoading, isReady, error, sendMessage, startTime }}>
       {children}
     </AIContext.Provider>
   );
