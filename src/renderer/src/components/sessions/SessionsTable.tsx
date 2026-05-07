@@ -16,6 +16,7 @@ interface SessionsTableProps {
   sessions: Session[];
   onRefresh?: () => void;
   onDelete?: (key: string) => void;
+  onSessionClick?: (key: string) => void;
 }
 
 function formatRelativeTime(isoString: string): string {
@@ -40,7 +41,7 @@ function formatDate(isoString: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function SessionsTable({ sessions, onRefresh, onDelete }: SessionsTableProps) {
+export default function SessionsTable({ sessions, onRefresh, onDelete, onSessionClick }: SessionsTableProps) {
   const { isDark } = useTheme();
   const [filter, setFilter] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -152,6 +153,7 @@ export default function SessionsTable({ sessions, onRefresh, onDelete }: Session
                   {filteredSessions.map((session) => (
                     <tr
                       key={session.key}
+                      onClick={() => onSessionClick?.(session.key)}
                       className={`border-b border-white/5 hover:${
                         isDark ? 'bg-white/5' : 'bg-gray-50'
                       } transition-colors cursor-pointer`}

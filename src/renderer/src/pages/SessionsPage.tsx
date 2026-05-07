@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import PageWrapper from '../components/common/PageWrapper';
 import SessionsTable from '../components/sessions/SessionsTable';
 
@@ -11,6 +12,7 @@ interface Session {
 }
 
 export default function SessionsPage() {
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,7 +48,20 @@ export default function SessionsPage() {
         fetchSessions();
       } catch (error) {
         console.error('Failed to delete session:', error);
+        throw error;
       }
+    }
+  };
+
+  const handleSessionClick = (key: string) => {
+    // key format: agent:{agent}:{session}
+    const parts = key.split(':');
+    if (parts.length >= 3) {
+      const agentSlug = parts[1];
+      const sessionSlug = parts[2];
+      
+      // Navigate to chat page with agent and session params
+      navigate(`/chat?agent=${agentSlug}&session=${sessionSlug}`);
     }
   };
 
@@ -55,7 +70,12 @@ export default function SessionsPage() {
       {isLoading ? (
         <div className="text-center py-8 text-gray-500">Loading sessions...</div>
       ) : (
-        <SessionsTable sessions={sessions} onRefresh={handleRefresh} onDelete={handleDelete} />
+        <SessionsTable 
+          sessions={sessions} 
+          onRefresh={handleRefresh} 
+          onDelete={handleDelete}
+          onSessionClick={handleSessionClick}
+        />
       )}
     </PageWrapper>
   );

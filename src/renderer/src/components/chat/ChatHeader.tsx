@@ -34,7 +34,8 @@ export default function ChatHeader({
                 }));
                 setAgentOptions(options);
                 
-                if (options.length > 0 && !options.find(a => a.value === selectedAgent)) {
+                // Only set default if no agent is selected yet
+                if (options.length > 0 && !selectedAgent) {
                     onAgentChange(options[0].value);
                 }
             } catch (error) {
@@ -45,7 +46,7 @@ export default function ChatHeader({
         }
         
         fetchAgents();
-    }, [selectedAgent]);
+    }, [selectedAgent, onAgentChange]);
 
     // Fetch sessions when agent changes
     useEffect(() => {
@@ -64,8 +65,8 @@ export default function ChatHeader({
                 }));
                 setSessionOptions(options);
                 
-                // Set default if current selection doesn't exist
-                if (options.length > 0 && !options.find(s => s.value === selectedSession)) {
+                // Only set default if no session is selected yet
+                if (options.length > 0 && !selectedSession) {
                     onSessionChange(options[0].value);
                 }
             } catch (error) {
@@ -76,7 +77,7 @@ export default function ChatHeader({
         }
         
         fetchSessions();
-    }, [selectedAgent, selectedSession]);
+    }, [selectedAgent]);
 
     const handleCreateSession = async (name: string) => {
         await (window as any).everclawAPI.sessions.create(selectedAgent, name);

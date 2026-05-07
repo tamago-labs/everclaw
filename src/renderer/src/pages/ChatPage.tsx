@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import PageWrapper from '../components/common/PageWrapper';
 import ChatContainer from '../components/chat/ChatContainer';
@@ -19,8 +20,11 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState('main');
-  const [selectedSession, setSelectedSession] = useState('main');
+  const [searchParams] = useSearchParams();
+  
+  // Read agent/session from URL params or use defaults
+  const [selectedAgent, setSelectedAgent] = useState(() => searchParams.get('agent') || 'main');
+  const [selectedSession, setSelectedSession] = useState(() => searchParams.get('session') || 'main');
 
   // Load messages when agent/session changes
   useEffect(() => {
