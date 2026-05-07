@@ -10,6 +10,7 @@ import {
 import { wdkService } from './services/wdk';
 import * as storage from './services/wdk/storage';
 import { registerAgentsIpcHandlers, initAgents } from './services/agents';
+import { registerLogsIpcHandlers, initLogs, log as logService } from './services/logs';
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -51,11 +52,17 @@ async function loadQVACService(): Promise<void> {
     modelId = await loadModel({
       modelSrc: LLAMA_3_2_1B_INST_Q4_0,
       modelType: 'llm',
-      onProgress: (progress) => console.log(progress)
+      onProgress: (progress) => {
+        const progressMsg = typeof progress === 'string' ? progress : JSON.stringify(progress);
+        console.log(progress)
+        logService(`[QVAC] ${progressMsg}`);
+      }
     });
     console.log('QVAC model loaded:', modelId);
+    logService(`[QVAC] Model loaded: ${modelId}`);
   } catch (error) {
     console.error('Failed to load QVAC Service:', error);
+    logService(`[QVAC] Failed to load: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -299,8 +306,15 @@ app.whenReady().then(async () => {
   // Initialize agents (create main agent if not exists)
   initAgents();
   
+  // Initialize logs directory
+  initLogs();
+  logService('[App] Starting Everclaw...');
+  
   // Register agents IPC handlers
   registerAgentsIpcHandlers();
+  
+  // Register logs IPC handlers
+  registerLogsIpcHandlers();
   
   // Register IPC handlers
   registerWDKIpcHandlers();
@@ -322,5 +336,19 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  }
+});
+
+// Unload model before quitting
+app.on('before-quit', async () => {
+  logService('[App] Shutting down Everclaw...');
+  
+  if (modelId) {
+    try {
+      await unloadModel({ modelId });
+      logService('[QVAC] Model unloaded on exit');
+    } catch (error) {
+      console.error('Failed to unload model:', error);
+    }
   }
 });

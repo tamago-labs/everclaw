@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Loader2, FileText } from 'lucide-react';
 import { useAI } from '../../context/AIContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -7,7 +8,6 @@ function formatUptime(startTime: Date): string {
   const now = new Date();
   const diff = Math.floor((now.getTime() - startTime.getTime()) / 1000);
 
-  const seconds = diff % 60;
   const minutes = Math.floor(diff / 60) % 60;
   const hours = Math.floor(diff / 3600) % 24;
   const days = Math.floor(diff / 86400);
@@ -16,12 +16,16 @@ function formatUptime(startTime: Date): string {
   if (days > 0) parts.push(`${days}d`);
   if (hours > 0) parts.push(`${hours}h`);
   if (minutes > 0) parts.push(`${minutes}m`);
-  parts.push(`${seconds}s`);
+  
+  if (parts.length === 0) {
+    parts.push('<1m');
+  }
 
   return parts.join(' ');
 }
 
 export default function AIOverviewCard() {
+  const navigate = useNavigate();
   const { isReady, startTime } = useAI();
   const { isDark } = useTheme();
   const [uptime, setUptime] = useState('--');
@@ -34,12 +38,15 @@ export default function AIOverviewCard() {
     }
   }, [startTime]);
 
+  const handleShowLogs = () => {
+    navigate('/settings');
+  };
+
   const items = [
     { label: 'Status', value: isReady ? 'Ready' : 'Loading...' },
     { label: 'Model', value: isReady ? 'Llama-3.2-1B-Instruct' : '--' },
     { label: 'Uptime', value: uptime },
-    { label: 'Sessions', value: '0' },
-    { label: 'Running Jobs', value: '0' }
+    { label: 'Sessions', value: '0' }
   ];
 
   return (
@@ -58,9 +65,22 @@ export default function AIOverviewCard() {
         }`} />
 
       <div className="relative z-10">
-        <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          AI Overview
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            AI Overview
+          </h3>
+          <button
+            onClick={handleShowLogs}
+            className={`flex items-center gap-1.5 text-sm transition-colors ${
+              isDark 
+                ? 'text-gray-400 hover:text-white' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <FileText size={14} />
+            Show logs
+          </button>
+        </div>
 
         <div className="space-y-3">
           {items.map((item, index) => (

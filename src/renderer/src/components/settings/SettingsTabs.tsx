@@ -1,6 +1,6 @@
 import { useTheme } from '../../context/ThemeContext';
 
-type Tab = 'about' | 'wallet';
+type Tab = 'logs' | 'about' | 'wallet';
 
 interface SettingsTabsProps {
   activeTab: Tab;
@@ -39,6 +39,19 @@ export default function SettingsTabs({ activeTab, onTabChange }: SettingsTabsPro
         }`} />
 
         <div className="relative z-10 flex gap-1">
+          <button
+            onClick={() => onTabChange('logs')}
+            className={`relative px-5 py-2.5 font-medium text-sm transition-all ${
+              activeTab === 'logs'
+                ? isDark ? 'text-white' : 'text-gray-900'
+                : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            Logs
+            {activeTab === 'logs' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-primary rounded-full" />
+            )}
+          </button>
           <button
             onClick={() => onTabChange('about')}
             className={`relative px-5 py-2.5 font-medium text-sm transition-all ${

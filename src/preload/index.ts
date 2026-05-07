@@ -46,4 +46,10 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     get: (slug: string) => ipcRenderer.invoke('agents:get', slug),
     init: () => ipcRenderer.invoke('agents:init'),
   },
+
+  // Logs operations
+  logs: {
+    get: (lines?: number) => ipcRenderer.invoke('logs:get', lines),
+    clear: () => ipcRenderer.invoke('logs:clear'),
+  },
 });

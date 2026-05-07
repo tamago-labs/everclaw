@@ -7,11 +7,10 @@ import AgentTabs from '../components/agents/AgentTabs';
 import AgentOverview from '../components/agents/AgentOverview';
 import AgentFiles from '../components/agents/AgentFiles';
 import AgentTools from '../components/agents/AgentTools';
-import AgentCronJobs from '../components/agents/AgentCronJobs';
-import AgentPermissions from '../components/agents/AgentPermissions';
+import AgentCronJobs from '../components/agents/AgentCronJobs'; 
 import CreateAgentModal from '../components/agents/CreateAgentModal';
 
-type Tab = 'overview' | 'files' | 'tools' | 'cron-jobs' | 'permissions';
+type Tab = 'overview' | 'files' | 'tools' | 'cron-jobs';
 
 interface Agent {
   slug: string;
@@ -98,9 +97,7 @@ export default function AgentsPage() {
       case 'tools':
         return <AgentTools />;
       case 'cron-jobs':
-        return <AgentCronJobs />;
-      case 'permissions':
-        return <AgentPermissions />;
+        return <AgentCronJobs />; 
       default:
         return null;
     }

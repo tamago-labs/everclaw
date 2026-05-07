@@ -114,7 +114,7 @@ export default function CreateAgentModal({ isOpen, onClose, onCreate }: CreateAg
                 setName(e.target.value);
                 setError(null);
               }}
-              placeholder="e.g., coding, research, assistant"
+            placeholder="e.g., meme-hunter, lending-helper, bridge-agent"
               className={`w-full px-4 py-3 rounded-xl border transition-colors ${
                 isDark
                   ? 'bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-accent-primary'

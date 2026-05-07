@@ -1,6 +1,6 @@
 import { useTheme } from '../../context/ThemeContext';
 
-type Tab = 'overview' | 'files' | 'tools' | 'cron-jobs' | 'permissions';
+type Tab = 'overview' | 'files' | 'tools' | 'cron-jobs';
 
 interface AgentTabsProps {
     activeTab: Tab;
@@ -14,7 +14,6 @@ export default function AgentTabs({ activeTab, onTabChange }: AgentTabsProps) {
         { id: 'overview', label: 'Overview' },
         { id: 'files', label: 'Files' },
         { id: 'tools', label: 'Tools' },
-        { id: 'permissions', label: 'Permissions' },
         { id: 'cron-jobs', label: 'Cron Jobs' }
     ];
 
@@ -33,14 +32,14 @@ export default function AgentTabs({ activeTab, onTabChange }: AgentTabsProps) {
             >
                 {/* Glass shine effect */}
                 <div className={`absolute inset-0 rounded-2xl ${isDark
-                        ? 'bg-gradient-to-br from-white/5 to-transparent'
-                        : 'bg-gradient-to-br from-white/80 to-transparent'
+                    ? 'bg-gradient-to-br from-white/5 to-transparent'
+                    : 'bg-gradient-to-br from-white/80 to-transparent'
                     }`} />
 
                 {/* Top highlight */}
                 <div className={`absolute top-0 left-0 w-full h-px ${isDark
-                        ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent'
-                        : 'bg-gradient-to-r from-transparent via-black/10 to-transparent'
+                    ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent'
+                    : 'bg-gradient-to-r from-transparent via-black/10 to-transparent'
                     }`} />
 
                 <div className="relative z-10 flex gap-1 flex-wrap">
@@ -49,8 +48,8 @@ export default function AgentTabs({ activeTab, onTabChange }: AgentTabsProps) {
                             key={tab.id}
                             onClick={() => onTabChange(tab.id)}
                             className={`relative px-4 py-2 font-medium text-sm transition-all whitespace-nowrap ${activeTab === tab.id
-                                    ? isDark ? 'text-white' : 'text-gray-900'
-                                    : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'
+                                ? isDark ? 'text-white' : 'text-gray-900'
+                                : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'
                                 }`}
                         >
                             {tab.label}
