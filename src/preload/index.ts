@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     getStatus: () => ipcRenderer.invoke('ai:getStatus'),
     loadModel: () => ipcRenderer.invoke('ai:loadModel'),
     sendPrompt: (message: string, history?: { role: string; content: string }[]) => ipcRenderer.invoke('ai:sendPrompt', message, history),
+    sendPromptStream: (message: string, history?: { role: string; content: string }[]) => ipcRenderer.invoke('ai:sendPromptStream', message, history),
+    onStreamToken: (callback: (token: string) => void) => {
+      ipcRenderer.on('ai:streamToken', (_event, token) => callback(token));
+    },
     unloadModel: () => ipcRenderer.invoke('ai:unloadModel'),
   },
 

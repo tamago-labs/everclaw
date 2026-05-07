@@ -14,7 +14,7 @@ interface Message {
 }
 
 export default function ChatPage() {
-  const { isLoading, isReady, error, sendMessage } = useAI();
+  const { isLoading, isReady, error, sendMessageStream } = useAI();
   const { isDark } = useTheme();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -85,40 +85,42 @@ export default function ChatPage() {
     setInput('');
     setIsGenerating(true);
 
-    try {
-      const assistantMessageId = (Date.now() + 1).toString();
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: assistantMessageId,
-          role: 'assistant',
-          content: '',
-          timestamp: new Date(),
-        },
-      ]);
+    // Create placeholder for assistant response
+    const assistantMessageId = (Date.now() + 1).toString();
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+      },
+    ]);
 
-      // Get all messages before this new one for conversation history
-      const conversationHistory = messages;
-      const response = await sendMessage(userMessage.content, conversationHistory);
-      
+    // Get messages before this new one for conversation history (exclude the empty assistant message)
+    const conversationHistory = messages;
+
+    try {
+      await sendMessageStream(userMessage.content, conversationHistory, (token) => {
+        // Update the last message with the streamed token
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? { ...msg, content: msg.content + token }
+              : msg
+          )
+        );
+      });
+    } catch (err) {
+      console.error('Failed to get response:', err);
+      // Update the failed message with error
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessageId
-            ? { ...msg, content: response }
+            ? { ...msg, content: 'Sorry, I encountered an error. Please try again.' }
             : msg
         )
       );
-    } catch (err) {
-      console.error('Failed to get response:', err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: 'Sorry, I encountered an error. Please try again.',
-          timestamp: new Date(),
-        },
-      ]);
     } finally {
       setIsGenerating(false);
     }

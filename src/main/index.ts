@@ -246,7 +246,7 @@ function registerQVACIpcHandlers(): void {
     }
   });
 
-  // Send prompt to AI
+  // Send prompt to AI (non-streaming)
   ipcMain.handle('ai:sendPrompt', async (_event, message: string, history: { role: string; content: string }[] = []) => {
     try {
       if (!modelId) {
@@ -265,6 +265,33 @@ function registerQVACIpcHandlers(): void {
       return { success: true, response: fullResponse };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get AI response';
+      return { success: false, error: message };
+    }
+  });
+
+  // Send prompt to AI (streaming)
+  ipcMain.handle('ai:sendPromptStream', async (event, message: string, history: { role: string; content: string }[] = []) => {
+    try {
+      if (!modelId) {
+        throw new Error('AI model not loaded');
+      }
+      // Build conversation history with the new message
+      const conversationHistory = [
+        ...history,
+        { role: 'user', content: message }
+      ];
+      const result = completion({ modelId, history: conversationHistory, stream: true, kvCache: true });
+      let fullResponse = '';
+      for await (const token of result.tokenStream) {
+        fullResponse += token;
+        event.sender.send('ai:streamToken', token);
+      }
+      // Send empty token to signal completion
+      event.sender.send('ai:streamToken', '');
+      return { success: true, response: fullResponse };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get AI response';
+      event.sender.send('ai:streamToken', '');
       return { success: false, error: message };
     }
   });

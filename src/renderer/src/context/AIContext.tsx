@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 
 interface Message {
   id: string;
@@ -12,6 +12,7 @@ interface AIContextType {
   isReady: boolean;
   error: string | null;
   sendMessage: (message: string, history?: Message[]) => Promise<string>;
+  sendMessageStream: (message: string, history: Message[], onToken: (token: string) => void) => Promise<string>;
   startTime: Date | null;
 }
 
@@ -82,8 +83,44 @@ export function AIProvider({ children }: AIProviderProps) {
     }
   };
 
+  const sendMessageStream = useCallback(async (
+    message: string, 
+    history: Message[], 
+    onToken: (token: string) => void
+  ): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Convert history to the format expected by backend
+        const conversationHistory = history.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
+        // Listen for stream tokens
+        (window as any).everclawAPI.ai.onStreamToken((token: string) => {
+          if (token === '') {
+            // Stream complete
+          } else {
+            onToken(token);
+          }
+        });
+
+        const result = await (window as any).everclawAPI.ai.sendPromptStream(message, conversationHistory);
+        if (result.success && result.response) {
+          resolve(result.response);
+        } else {
+          reject(new Error(result.error || 'Failed to get AI response'));
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+        setError(errorMessage);
+        reject(err);
+      }
+    });
+  }, []);
+
   return (
-    <AIContext.Provider value={{ isLoading, isReady, error, sendMessage, startTime }}>
+    <AIContext.Provider value={{ isLoading, isReady, error, sendMessage, sendMessageStream, startTime }}>
       {children}
     </AIContext.Provider>
   );
