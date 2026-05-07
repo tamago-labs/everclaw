@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAI } from '../../context/AIContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -65,22 +65,9 @@ export default function AIOverviewCard() {
         }`} />
 
       <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            AI Overview
-          </h3>
-          <button
-            onClick={handleShowLogs}
-            className={`flex items-center gap-1.5 text-sm transition-colors ${
-              isDark 
-                ? 'text-gray-400 hover:text-white' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <FileText size={14} />
-            Show logs
-          </button>
-        </div>
+        <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          AI Overview
+        </h3>
 
         <div className="space-y-3">
           {items.map((item, index) => (
@@ -108,6 +95,14 @@ export default function AIOverviewCard() {
             </div>
           ))}
         </div>
+
+        {/* Show logs button */}
+        <button
+          onClick={handleShowLogs}
+          className="mt-10 text-sm text-accent-primary hover:text-accent-primary/80 transition-colors"
+        >
+          Show logs
+        </button>
       </div>
     </div>
   );

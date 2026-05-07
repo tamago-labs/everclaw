@@ -11,6 +11,7 @@ import { wdkService } from './services/wdk';
 import * as storage from './services/wdk/storage';
 import { registerAgentsIpcHandlers, initAgents } from './services/agents';
 import { registerLogsIpcHandlers, initLogs, log as logService } from './services/logs';
+import { registerSessionsIpcHandlers } from './services/sessions';
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -246,14 +247,18 @@ function registerQVACIpcHandlers(): void {
   });
 
   // Send prompt to AI
-  ipcMain.handle('ai:sendPrompt', async (_event, message: string) => {
+  ipcMain.handle('ai:sendPrompt', async (_event, message: string, history: { role: string; content: string }[] = []) => {
     try {
       if (!modelId) {
         throw new Error('AI model not loaded');
       }
-      const history = [{ role: 'user', content: message }];
+      // Build conversation history with the new message
+      const conversationHistory = [
+        ...history,
+        { role: 'user', content: message }
+      ];
       let fullResponse = '';
-      const result = completion({ modelId, history, stream: true });
+      const result = completion({ modelId, history: conversationHistory, stream: true, kvCache: true });
       for await (const token of result.tokenStream) {
         fullResponse += token;
       }
@@ -315,6 +320,9 @@ app.whenReady().then(async () => {
   
   // Register logs IPC handlers
   registerLogsIpcHandlers();
+  
+  // Register sessions IPC handlers
+  registerSessionsIpcHandlers();
   
   // Register IPC handlers
   registerWDKIpcHandlers();

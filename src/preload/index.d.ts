@@ -53,7 +53,7 @@ interface EverclawAPI {
   ai: {
     getStatus: () => Promise<AIStatus>;
     loadModel: () => Promise<AIResult>;
-    sendPrompt: (message: string) => Promise<AIResult>;
+    sendPrompt: (message: string, history?: { role: string; content: string }[]) => Promise<AIResult>;
     unloadModel: () => Promise<AIResult>;
   };
 }

@@ -1,10 +1,17 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 interface AIContextType {
   isLoading: boolean;
   isReady: boolean;
   error: string | null;
-  sendMessage: (message: string) => Promise<string>;
+  sendMessage: (message: string, history?: Message[]) => Promise<string>;
   startTime: Date | null;
 }
 
@@ -54,9 +61,15 @@ export function AIProvider({ children }: AIProviderProps) {
     return () => clearInterval(interval);
   }, [isReady]);
 
-  const sendMessage = async (message: string): Promise<string> => {
+  const sendMessage = async (message: string, history: Message[] = []): Promise<string> => {
     try {
-      const result = await (window as any).everclawAPI.ai.sendPrompt(message);
+      // Convert history to the format expected by backend
+      const conversationHistory = history.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+      
+      const result = await (window as any).everclawAPI.ai.sendPrompt(message, conversationHistory);
       if (result.success && result.response) {
         return result.response;
       } else {

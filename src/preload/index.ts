@@ -34,7 +34,7 @@ contextBridge.exposeInMainWorld('everclawAPI', {
   ai: {
     getStatus: () => ipcRenderer.invoke('ai:getStatus'),
     loadModel: () => ipcRenderer.invoke('ai:loadModel'),
-    sendPrompt: (message: string) => ipcRenderer.invoke('ai:sendPrompt', message),
+    sendPrompt: (message: string, history?: { role: string; content: string }[]) => ipcRenderer.invoke('ai:sendPrompt', message, history),
     unloadModel: () => ipcRenderer.invoke('ai:unloadModel'),
   },
 
@@ -51,5 +51,16 @@ contextBridge.exposeInMainWorld('everclawAPI', {
   logs: {
     get: (lines?: number) => ipcRenderer.invoke('logs:get', lines),
     clear: () => ipcRenderer.invoke('logs:clear'),
+  },
+
+  // Sessions operations
+  sessions: {
+    list: (agentSlug: string) => ipcRenderer.invoke('sessions:list', agentSlug),
+    create: (agentSlug: string, name: string) => ipcRenderer.invoke('sessions:create', agentSlug, name),
+    delete: (agentSlug: string, sessionSlug: string) => ipcRenderer.invoke('sessions:delete', agentSlug, sessionSlug),
+    get: (agentSlug: string, sessionSlug: string) => ipcRenderer.invoke('sessions:get', agentSlug, sessionSlug),
+    ensureMain: (agentSlug: string) => ipcRenderer.invoke('sessions:ensureMain', agentSlug),
+    saveMessages: (agentSlug: string, sessionSlug: string, messages: any[]) => ipcRenderer.invoke('sessions:saveMessages', agentSlug, sessionSlug, messages),
+    loadMessages: (agentSlug: string, sessionSlug: string) => ipcRenderer.invoke('sessions:loadMessages', agentSlug, sessionSlug),
   },
 });

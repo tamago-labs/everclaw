@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import PageWrapper from '../components/common/PageWrapper';
 import ChatContainer from '../components/chat/ChatContainer';
@@ -19,8 +19,56 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState('agent-1');
-  const [selectedSession, setSelectedSession] = useState('session-1');
+  const [selectedAgent, setSelectedAgent] = useState('main');
+  const [selectedSession, setSelectedSession] = useState('main');
+
+  // Load messages when agent/session changes
+  useEffect(() => {
+    if (!selectedAgent || !selectedSession) return;
+
+    async function loadMessages() {
+      try {
+        const storedMessages: any[] = await (window as any).everclawAPI.sessions.loadMessages(selectedAgent, selectedSession);
+        
+        // Convert stored messages to Message format
+        const formattedMessages: Message[] = storedMessages.map((msg, index) => ({
+          id: msg.id || `msg-${index}`,
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
+        }));
+        
+        setMessages(formattedMessages);
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+      }
+    }
+
+    loadMessages();
+  }, [selectedAgent, selectedSession]);
+
+  // Save messages when they change
+  useEffect(() => {
+    if (!selectedAgent || !selectedSession || messages.length === 0) return;
+
+    const saveTimeout = setTimeout(async () => {
+      try {
+        // Convert messages to storable format
+        const messagesToSave = messages.map(msg => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp.toISOString(),
+        }));
+        
+        await (window as any).everclawAPI.sessions.saveMessages(selectedAgent, selectedSession, messagesToSave);
+      } catch (error) {
+        console.error('Failed to save messages:', error);
+      }
+    }, 500); // Debounce saves
+
+    return () => clearTimeout(saveTimeout);
+  }, [messages, selectedAgent, selectedSession]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +97,9 @@ export default function ChatPage() {
         },
       ]);
 
-      const response = await sendMessage(userMessage.content);
+      // Get all messages before this new one for conversation history
+      const conversationHistory = messages;
+      const response = await sendMessage(userMessage.content, conversationHistory);
       
       setMessages((prev) =>
         prev.map((msg) =>

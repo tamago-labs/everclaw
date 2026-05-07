@@ -24,7 +24,7 @@ export default function TopBar() {
       toggleTheme();
     });
     return cleanup;
-  }, [toggleTheme]);
+  }, []);
 
   // Build breadcrumb: Category > Page
   const meta = routeMeta[location.pathname] || { category: 'Everclaw', label: 'Overview' };

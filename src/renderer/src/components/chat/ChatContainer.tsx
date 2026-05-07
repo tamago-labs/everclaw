@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Bot, User } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface Message {
@@ -95,19 +95,6 @@ export default function ChatContainer({
               </div>
             </div>
           ))}
-
-          {isGenerating && messages[messages.length - 1]?.role === 'user' && (
-            <div className="flex gap-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                isDark ? 'bg-white/10' : 'bg-gray-200'
-              }`}>
-                <Bot size={16} className={isDark ? 'text-white' : 'text-gray-700'} />
-              </div>
-              <div className={`px-4 py-2 rounded-2xl ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
-                <Loader2 className="w-4 h-4 animate-spin" />
-              </div>
-            </div>
-          )}
 
           <div ref={messagesEndRef} />
         </div>
