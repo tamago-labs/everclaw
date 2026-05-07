@@ -11,7 +11,7 @@ const routeMeta: Record<string, { category: string; label: string }> = {
   '/usage': { category: 'Control', label: 'Usage' },
   '/cron-jobs': { category: 'Control', label: 'Cron Jobs' },
   '/agents': { category: 'Agent', label: 'Agents' },
-  '/skills': { category: 'Agent', label: 'Skills' },
+  '/tools': { category: 'Agent', label: 'Tools' },
 };
 
 export default function TopBar() {

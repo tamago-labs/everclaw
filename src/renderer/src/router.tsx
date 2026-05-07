@@ -7,7 +7,7 @@ import SessionsPage from './pages/SessionsPage';
 import UsagePage from './pages/UsagePage';
 import CronJobsPage from './pages/CronJobsPage';
 import AgentsPage from './pages/AgentsPage';
-import SkillsPage from './pages/SkillsPage';
+import ToolsPage from './pages/ToolsPage';
 import SetupWalletPage from './pages/SetupWalletPage';
 
 export const router = createHashRouter([
@@ -22,7 +22,7 @@ export const router = createHashRouter([
       { path: 'usage', element: <UsagePage /> },
       { path: 'cron-jobs', element: <CronJobsPage /> },
       { path: 'agents', element: <AgentsPage /> },
-      { path: 'skills', element: <SkillsPage /> },
+      { path: 'tools', element: <ToolsPage /> },
       { path: 'setup-wallet', element: <SetupWalletPage /> },
     ],
   },

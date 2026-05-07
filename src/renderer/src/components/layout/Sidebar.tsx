@@ -5,7 +5,7 @@ import {
   MonitorSmartphone,
   Clock,
   Bot,
-  Zap,
+  Wrench,
   Settings,
   Crown
 } from 'lucide-react';
@@ -42,7 +42,7 @@ const categories: NavCategory[] = [
     title: 'Agent',
     items: [
       { icon: Bot, label: 'Agents', path: '/agents' },
-      { icon: Zap, label: 'Skills', path: '/skills' },
+      { icon: Wrench, label: 'Tools', path: '/tools' },
     ],
   },
 ];
