@@ -50,19 +50,19 @@ export class WDKService {
     initializeWithSeed(seedPhrase: string): any {
         wdkInstance = new WDK(seedPhrase)
             .registerWallet('ethereum', WalletManagerEvm, {
-                provider: 'https://eth.drpc.org',
+                provider: 'https://eth-mainnet.g.alchemy.com/v2/46BFnBkjDdWActWG5HvRV',
             })
             .registerWallet('polygon', WalletManagerEvm, {
-                provider: 'https://polygon.drpc.org',
+                provider: 'https://polygon-mainnet.g.alchemy.com/v2/46BFnBkjDdWActWG5HvRV',
             })
             .registerWallet('arbitrum', WalletManagerEvm, {
-                provider: 'https://arbitrum.drpc.org',
+                provider: 'https://arb-mainnet.g.alchemy.com/v2/46BFnBkjDdWActWG5HvRV',
             })
             .registerWallet('solana', WalletManagerSolana, {
-                rpcUrl: 'https://api.mainnet-beta.solana.com',
+                rpcUrl: 'https://solana-mainnet.g.alchemy.com/v2/46BFnBkjDdWActWG5HvRV',
             })
             .registerWallet('bitcoin', WalletManagerBtc, {
-                provider: 'https://blockstream.info/api'
+                provider: 'https://bitcoin-mainnet.g.alchemy.com/v2/46BFnBkjDdWActWG5HvRV'
             });
 
         return wdkInstance;
