@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -10,9 +11,14 @@ interface PageWrapperProps {
 export default function PageWrapper({ title, children, className = '' }: PageWrapperProps) {
   const { isDark } = useTheme();
   const gradientClass = isDark ? 'text-gradient-white' : 'text-gradient-light';
+  const topRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [title]);
 
   return (
-    <div className={`p-8 ${className}`}>
+    <div className={`p-8 ${className}`} ref={topRef}>
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
