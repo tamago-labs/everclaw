@@ -12,7 +12,6 @@ interface ChatContainerProps {
   messages: Message[];
   input: string;
   isGenerating: boolean;
-  isMCPRunning: boolean;
   onInputChange: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -21,7 +20,6 @@ export default function ChatContainer({
   messages, 
   input, 
   isGenerating, 
-  isMCPRunning,
   onInputChange, 
   onSubmit 
 }: ChatContainerProps) {
@@ -105,7 +103,7 @@ export default function ChatContainer({
         <div className={`p-4 border-t ${isDark ? 'border-white/10' : 'border-black/5'}`}>
           <form onSubmit={onSubmit} className="flex gap-0">
             {/* MCP Status Indicator */}
-            <div 
+            {/* <div 
               className={`px-3 py-3 rounded-l-xl border-r flex items-center gap-2 ${
                 isDark 
                   ? 'bg-white/5 border-white/10' 
@@ -121,7 +119,7 @@ export default function ChatContainer({
               }`}>
                 {isMCPRunning ? 'MCP Ready' : 'MCP Off'}
               </span>
-            </div>
+            </div> */}
             
             <input
               ref={inputRef}

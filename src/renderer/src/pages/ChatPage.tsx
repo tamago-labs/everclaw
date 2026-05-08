@@ -19,24 +19,8 @@ export default function ChatPage() {
   const { isDark } = useTheme();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isMCPRunning, setIsMCPRunning] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false); 
   const [searchParams] = useSearchParams();
-  
-  // Fetch MCP status once on mount
-  useEffect(() => {
-    async function checkMCPStatus() {
-      try {
-        const status = await (window as any).everclawAPI.wdk.getStatus();
-        setIsMCPRunning(status.isMCPRunning || false);
-      } catch (error) {
-        console.error('Failed to get MCP status:', error);
-        setIsMCPRunning(false);
-      }
-    }
-    
-    checkMCPStatus();
-  }, []);
   
   // Read agent/session from URL params or use defaults
   const [selectedAgent, setSelectedAgent] = useState(() => searchParams.get('agent') || 'main');
@@ -196,7 +180,6 @@ export default function ChatPage() {
             messages={messages}
             input={input}
             isGenerating={isGenerating}
-            isMCPRunning={isMCPRunning}
             onInputChange={setInput}
             onSubmit={handleSubmit}
           />

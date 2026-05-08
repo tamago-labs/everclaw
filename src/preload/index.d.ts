@@ -3,7 +3,6 @@ interface WDKStatus {
   hasStoredSeed: boolean;
   isEncryptionAvailable: boolean;
   storageBackend?: string;
-  isMCPRunning: boolean;
 }
 
 interface AccountInfo {
