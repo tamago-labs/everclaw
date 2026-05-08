@@ -1,4 +1,3 @@
-
 interface WDKStatus {
   isInitialized: boolean;
   hasStoredSeed: boolean;
@@ -55,6 +54,12 @@ interface EverclawAPI {
     loadModel: () => Promise<AIResult>;
     sendPrompt: (message: string, history?: { role: string; content: string }[]) => Promise<AIResult>;
     unloadModel: () => Promise<AIResult>;
+  };
+
+  // Pricing operations
+  pricing: {
+    getLastPrice: (symbol: string) => Promise<number>;
+    getPrices: (symbols: string[]) => Promise<Record<string, number>>;
   };
 }
 

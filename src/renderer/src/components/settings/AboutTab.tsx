@@ -1,16 +1,20 @@
+import { Crown } from "lucide-react";
+
 export default function AboutTab() {
   return (
-     <div className="space-y-6">
+    <div className="space-y-6">
       <div className="rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] p-6">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-14 h-14 rounded-2xl bg-accent-primary flex items-center justify-center shadow-[0_0_30px_var(--color-glow-green)]">
-            <span className="text-2xl font-black text-[#0F1117]" style={{ fontFamily: 'var(--font-brand)' }}>E</span>
+             <Crown size={24} className="text-[#0F1117] -scale-x-100" strokeWidth={2} />
           </div>
           <div>
             <div className="text-xl font-bold text-[var(--color-text-primary)]" style={{ fontFamily: 'var(--font-brand)' }}>
               EVERCLAW
             </div>
-            <div className="text-sm text-[var(--color-text-muted)]">AI-Powered Multi-Chain Agent Wallet</div>
+            <div className="text-sm text-[var(--color-text-muted)]">
+              Local AI Wallet OS for Solana & Ethereum
+            </div>
           </div>
         </div>
 

@@ -1,10 +1,7 @@
 import { listTokens, TokenConfig } from '../tokens/storage';
 import { wdkService } from '../wdk/WDKService';
 import { getTokenImageUrl } from '../../utils/tokenImages';
-
-// @ts-ignore - Pricing provider is ESM module
-import WDKPricingModule from '@tetherto/wdk-pricing-provider';
-const PricingProvider = (WDKPricingModule as any).default || WDKPricingModule;
+import { getLastPrice } from '../pricing';
 
 export interface TokenBalance {
   symbol: string;
@@ -27,36 +24,6 @@ export interface BalanceResult {
   tokens: TokenBalance[];
 }
 
-// Pricing provider instance
-let pricingProvider: any = null;
-
-function getPricingProvider(): any {
-  if (!pricingProvider) {
-    // Initialize with mock client for now - in production, use real client
-    pricingProvider = new PricingProvider({
-      client: {
-        getLastPrice: async (from: string, to: string) => {
-          // Fallback mock prices if pricing unavailable
-          const mockPrices: Record<string, number> = {
-            'ETH-USD': 2300,
-            'WETH-USD': 2300,
-            'USDT-USD': 1,
-            'USDC-USD': 1,
-            'POL-USD': 0.95,
-            'SOL-USD': 140,
-            'BTC-USD': 65000,
-            'USDS-USD': 1,
-          };
-          return mockPrices[`${from}-${to}`] || 0;
-        },
-        getHistoricalPrice: async () => ({ price: 0, timestamp: Date.now() }),
-      },
-      priceCacheDurationMs: 60 * 60 * 1000,
-    });
-  }
-  return pricingProvider;
-}
-
 function formatBalance(rawBalance: string, decimals: number): string {
   try {
     const balance = BigInt(rawBalance);
@@ -77,24 +44,18 @@ function formatBalance(rawBalance: string, decimals: number): string {
   }
 }
 
-async function getPrice(symbol: string): Promise<number> {
-  try {
-    const price = await getPricingProvider().getLastPrice(symbol, 'USD');
-    return price || 0;
-  } catch {
-    return 0;
-  }
-}
-
-async function calculateValue(balance: string, symbol: string): Promise<string> {
+async function calculateValue(balance: string, symbol: string): Promise<{ value: string; price: number }> {
   try {
     const num = parseFloat(balance);
-    if (isNaN(num)) return '$0';
-    const price = await getPrice(symbol);
+    if (isNaN(num) || num === 0) return { value: '$0', price: 0 };
+    const price = await getLastPrice(symbol);
     const value = num * price;
-    return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return {
+      value: `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      price,
+    };
   } catch {
-    return '$0';
+    return { value: '$0', price: 0 };
   }
 }
 
@@ -146,7 +107,7 @@ export async function getAllBalances(): Promise<BalanceResult[]> {
     };
     const nativeSymbol = nativeSymbols[chain] || 'ETH';
     const { balance: nativeRaw, formatted: nativeFormatted } = await getNativeBalance(chain);
-    const nativeValue = await calculateValue(nativeFormatted, nativeSymbol);
+    const { value: nativeValue } = await calculateValue(nativeFormatted, nativeSymbol);
 
     // Get token balances
     const tokenBalances: TokenBalance[] = [];
@@ -154,10 +115,9 @@ export async function getAllBalances(): Promise<BalanceResult[]> {
     for (const token of chainTokens) {
       if (token.contractAddress === 'native') continue; // Skip native token in this loop
       
-      const price = await getPrice(token.symbol);
       const rawBalance = await getTokenBalance(chain, token.contractAddress, token.decimals);
       const formatted = formatBalance(rawBalance, token.decimals);
-      const value = await calculateValue(formatted, token.symbol);
+      const { value, price } = await calculateValue(formatted, token.symbol);
       
       tokenBalances.push({
         ...token,

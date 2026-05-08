@@ -82,4 +82,10 @@ contextBridge.exposeInMainWorld('everclawAPI', {
   balances: {
     getAll: () => ipcRenderer.invoke('balances:getAll'),
   },
+
+  // Pricing operations
+  pricing: {
+    getLastPrice: (symbol: string) => ipcRenderer.invoke('pricing:getLastPrice', symbol),
+    getPrices: (symbols: string[]) => ipcRenderer.invoke('pricing:getPrices', symbols),
+  },
 });
