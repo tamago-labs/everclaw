@@ -31,7 +31,7 @@ export default function CreateAgentModal({ isOpen, onClose, onCreate }: CreateAg
       setTimeout(() => {
         onClose();
         setSuccess(null);
-      }, 1500);
+      }, 1000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create agent';
       setError(errorMessage);

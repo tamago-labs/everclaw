@@ -20,6 +20,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false); 
+  const [streamingThinking, setStreamingThinking] = useState('');
   const [searchParams] = useSearchParams();
   
   // Read agent/session from URL params or use defaults
@@ -110,16 +111,22 @@ export default function ChatPage() {
     // Get messages before this new one for conversation history
     const conversationHistory = messagesRef.current;
 
+    // Reset thinking state at start
+    setStreamingThinking('');
+
     try {
       await sendMessageStream(userMessage.content, conversationHistory, (token) => {
-        // Update the last message with the streamed token
+        // Update the last message with the streamed token, trimming leading whitespace
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMessageId
-              ? { ...msg, content: msg.content + token }
+              ? { ...msg, content: (msg.content + token).replace(/^\s+/, '') }
               : msg
           )
         );
+      }, (thinkingToken) => {
+        // Update streaming thinking content
+        setStreamingThinking((prev) => prev + thinkingToken);
       });
     } catch (err) {
       console.error('Failed to get response:', err);
@@ -180,6 +187,7 @@ export default function ChatPage() {
             messages={messages}
             input={input}
             isGenerating={isGenerating}
+            streamingThinking={streamingThinking}
             onInputChange={setInput}
             onSubmit={handleSubmit}
           />

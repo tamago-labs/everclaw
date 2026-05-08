@@ -30,7 +30,7 @@ export default function CreateSessionModal({ isOpen, onClose, onCreate }: Create
       setTimeout(() => {
         onClose();
         setSuccess(null);
-      }, 1500);
+      }, 1000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create session';
       setError(errorMessage);

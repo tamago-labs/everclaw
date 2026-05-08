@@ -1,5 +1,5 @@
-import { useRef, useEffect, ReactNode } from 'react';
-import { Send, Bot, User } from 'lucide-react';
+import { useRef, useEffect, useState } from 'react';
+import { Send, Bot, User, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface Message {
@@ -12,76 +12,55 @@ interface ChatContainerProps {
   messages: Message[];
   input: string;
   isGenerating: boolean;
+  streamingThinking?: string;
   onInputChange: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
-}
-
-// ANSI escape sequences for thinking (dim mode)
-const ESCAPE = '\x1b';
-const THINKING_START = `${ESCAPE}[2m`;
-const THINKING_END = `${ESCAPE}[0m`;
-
-// Parse content into segments for rendering
-function parseContentWithThinking(content: string): ReactNode[] {
-  const parts: ReactNode[] = [];
-
-  // Find thinking markers using indexOf
-  let lastIndex = 0;
-  let segmentIndex = 0;
-
-  while (true) {
-    const startIdx = content.indexOf(THINKING_START, lastIndex);
-    if (startIdx === -1) break;
-
-    const endIdx = content.indexOf(THINKING_END, startIdx + THINKING_START.length);
-    if (endIdx === -1) break;
-
-    // Add text before this thinking segment
-    if (startIdx > lastIndex) {
-      parts.push(
-        <span key={`text-${segmentIndex++}`}>{content.slice(lastIndex, startIdx)}</span>
-      );
-    }
-
-    // Add thinking text with amber styling
-    const thinkingText = content.slice(startIdx + THINKING_START.length, endIdx);
-    parts.push(
-      <span
-        key={`thinking-${segmentIndex++}`}
-        className="text-amber-400 italic text-xs opacity-70"
-        title="AI thinking"
-      >
-        {thinkingText}
-      </span>
-    );
-
-    lastIndex = endIdx + THINKING_END.length;
-  }
-
-  // Add remaining text after last thinking segment
-  if (lastIndex < content.length) {
-    parts.push(
-      <span key={`text-${segmentIndex++}`}>{content.slice(lastIndex)}</span>
-    );
-  }
-
-  return parts.length > 0 ? parts : [<span key="text-0">{content}</span>];
 }
 
 export default function ChatContainer({
   messages,
   input,
   isGenerating,
+  streamingThinking = '',
   onInputChange,
   onSubmit
 }: ChatContainerProps) {
   const { isDark } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [completedThinking, setCompletedThinking] = useState<string>('');
+  const lastThinkingRef = useRef<string>('');
+
+  // Track thinking content - persists after completion
+  useEffect(() => {
+    if (streamingThinking) {
+      lastThinkingRef.current = streamingThinking;
+    }
+    // When streaming stops and there's content, keep it
+    if (!isGenerating && lastThinkingRef.current) {
+      setCompletedThinking(lastThinkingRef.current);
+    }
+  }, [streamingThinking, isGenerating]);
+
+  // Reset thinking when new generation starts
+  useEffect(() => {
+    if (isGenerating) {
+      setCompletedThinking('');
+      lastThinkingRef.current = '';
+    }
+  }, [isGenerating]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, streamingThinking]);
+
+  // Find the last assistant message and previous message
+  const assistantMessages = messages.filter(m => m.role === 'assistant');
+  const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
+  const lastMessageId = lastAssistantMessage?.id;
+  
+  // Find index of last assistant message
+  const lastAssistantIndex = messages.findIndex(m => m.id === lastMessageId);
 
   return (
     <div
@@ -116,37 +95,50 @@ export default function ChatContainer({
             </div>
           )}
 
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
-            >
-              {/* Avatar */}
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === 'user'
-                  ? 'bg-accent-primary'
-                  : isDark ? 'bg-white/10' : 'bg-gray-200'
-                }`}>
-                {message.role === 'user' ? (
-                  <User size={16} className="text-[#0F1117]" />
-                ) : (
-                  <Bot size={16} className={isDark ? 'text-white' : 'text-gray-700'} />
+          {messages.map((message, index) => {
+            
+            return (
+              <div key={message.id}>
+                {/* Thinking box appears BEFORE the last assistant message */}
+                {index === lastAssistantIndex && (streamingThinking || completedThinking) && (
+                  <div className={`mb-2 ml-11 rounded-xl overflow-hidden border ${
+                    isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'
+                  }`}>
+                    <StreamingThinkingHeader 
+                      content={streamingThinking || completedThinking} 
+                      isGenerating={isGenerating}
+                    />
+                  </div>
                 )}
-              </div>
+                
+                <div
+                  className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
+                >
+                  {/* Avatar */}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === 'user'
+                      ? 'bg-accent-primary'
+                      : isDark ? 'bg-white/10' : 'bg-gray-200'
+                    }`}>
+                    {message.role === 'user' ? (
+                      <User size={16} className="text-[#0F1117]" />
+                    ) : (
+                      <Bot size={16} className={isDark ? 'text-white' : 'text-gray-700'} />
+                    )}
+                  </div>
 
-              {/* Message Content */}
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${message.role === 'user'
-                  ? 'bg-accent-primary text-[#0F1117]'
-                  : isDark ? 'bg-white/5' : 'bg-gray-100'
-                }`}>
-                <p className="whitespace-pre-wrap break-words">
-                  {message.role === 'assistant'
-                    ? parseContentWithThinking(message.content)
-                    : message.content
-                  }
-                </p>
+                  {/* Message Content */}
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${message.role === 'user'
+                      ? 'bg-accent-primary text-[#0F1117]'
+                      : isDark ? 'bg-white/5' : 'bg-gray-100'
+                    }`}>
+                    <p className="whitespace-pre-wrap break-words">
+                      {message.content}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <div ref={messagesEndRef} />
         </div>
@@ -177,5 +169,52 @@ export default function ChatContainer({
         </div>
       </div>
     </div>
+  );
+}
+
+// Streaming thinking content display component
+function StreamingThinkingHeader({ 
+  content, 
+  isGenerating 
+}: { 
+  content: string; 
+  isGenerating: boolean;
+}) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const { isDark } = useTheme();
+
+  return (
+    <>
+      {/* Header - always visible */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={`w-full px-3 py-1.5 flex items-center gap-2 text-left transition-colors ${
+          isDark 
+            ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400' 
+            : 'bg-amber-100 hover:bg-amber-200 text-amber-700'
+        }`}
+      >
+        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />} 
+        <span className="font-medium text-xs">
+          {isGenerating ? 'Thinking...' : 'Thinking'}
+        </span>
+        {!isGenerating && content && (
+          <span className={`text-xs ml-auto ${isDark ? 'text-amber-500/60' : 'text-amber-600/60'}`}>
+            (click to {isExpanded ? 'collapse' : 'expand'})
+          </span>
+        )}
+      </button>
+      
+      {/* Content */}
+      {isExpanded && (
+        <div className={`p-2 ${isDark ? 'bg-amber-500/5' : 'bg-amber-50'}`}>
+          <p className={`text-xs italic whitespace-pre-wrap break-words ${
+            isDark ? 'text-amber-300/80' : 'text-amber-700'
+          }`}>
+            {content || (isGenerating && <span className="opacity-50">...</span>)}
+          </p>
+        </div>
+      )}
+    </>
   );
 }

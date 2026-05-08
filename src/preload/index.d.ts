@@ -54,6 +54,10 @@ interface EverclawAPI {
     loadModel: () => Promise<AIResult>;
     sendPrompt: (message: string, history?: { role: string; content: string }[]) => Promise<AIResult>;
     unloadModel: () => Promise<AIResult>;
+    onStreamToken: (callback: (token: string) => void) => void;
+    removeStreamTokenListener: (callback: (...args: any[]) => void) => void;
+    onStreamThinking: (callback: (token: string) => void) => void;
+    removeStreamThinkingListener: (callback: (...args: any[]) => void) => void;
   };
 
   // Pricing operations

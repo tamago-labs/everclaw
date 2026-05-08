@@ -67,7 +67,7 @@ export default function AIOverviewCard() {
 
   const items = [
     { label: 'Status', value: isReady ? 'Ready' : 'Loading...' },
-    { label: 'Model', value: isReady ? 'Qwen3-1.7B-Instruct' : '--' },
+    { label: 'Model', value: isReady ? 'Llama Tool Calling 1B Q4_K' : '--' },
     { label: 'Uptime', value: uptime },
     { label: 'Sessions / Running Jobs', value: `${sessionsCount} / 0` }
   ];

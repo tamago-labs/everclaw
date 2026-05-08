@@ -42,6 +42,12 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     removeStreamTokenListener: (callback: (...args: any[]) => void) => {
       ipcRenderer.removeListener('ai:streamToken', callback);
     },
+    onStreamThinking: (callback: (token: string) => void) => {
+      ipcRenderer.on('ai:streamThinking', (_event, token) => callback(token));
+    },
+    removeStreamThinkingListener: (callback: (...args: any[]) => void) => {
+      ipcRenderer.removeListener('ai:streamThinking', callback);
+    },
     unloadModel: () => ipcRenderer.invoke('ai:unloadModel'),
   },
 

@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import {
-  QWEN3_1_7B_INST_Q4,
+  LLAMA_TOOL_CALLING_1B_INST_Q4_K,
   loadModel,
   unloadModel,
   completion
@@ -54,10 +54,10 @@ function createWindow(): void {
 async function loadQVACService(): Promise<void> {
   try {
     modelId = await loadModel({
-      modelSrc: QWEN3_1_7B_INST_Q4,
+      modelSrc: LLAMA_TOOL_CALLING_1B_INST_Q4_K,
       modelType: 'llm',
       modelConfig: {
-        ctx_size: 4096,
+        ctx_size: 8192,
         tools: true, // Enable tools support
       },
       onProgress: (progress) => {
@@ -248,7 +248,7 @@ function registerQVACIpcHandlers(): void {
     try {
       if (!modelId) {
         modelId = await loadModel({
-          modelSrc: QWEN3_1_7B_INST_Q4,
+          modelSrc: LLAMA_TOOL_CALLING_1B_INST_Q4_K,
           modelType: 'llm',
           onProgress: (progress) => console.log(progress)
         });
@@ -272,7 +272,7 @@ function registerQVACIpcHandlers(): void {
         { role: 'user', content: message }
       ];
       let fullResponse = '';
-      const result = completion({ modelId, history: conversationHistory, stream: true, kvCache: true });
+      const result = completion({ modelId, history: conversationHistory, stream: true, kvCache: true, captureThinking: true });
       for await (const token of result.tokenStream) {
         fullResponse += token;
       }
@@ -304,7 +304,7 @@ function registerQVACIpcHandlers(): void {
             event.sender.send('ai:streamToken', streamEvent.text);
             break;
           case "thinkingDelta":
-            event.sender.send('ai:streamToken', `\x1b[2m${streamEvent.text}\x1b[0m`);
+            event.sender.send('ai:streamThinking', streamEvent.text);
             break;
           case "toolCall":
             console.log(`\n→ Tool: ${streamEvent.call.name}(${JSON.stringify(streamEvent.call.arguments)})`);
