@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import GlassDropdown from '../common/GlassDropdown';
 import GlassButton from '../common/GlassButton';
 import CreateSessionModal from './CreateSessionModal';
@@ -95,30 +95,30 @@ export default function ChatHeader({
         onSessionChange(newSlug);
     };
 
-    const handleDeleteSession = async () => {
-        if (selectedSession === 'main') return;
+    // const handleDeleteSession = async () => {
+    //     if (selectedSession === 'main') return;
         
-        if (confirm('Are you sure you want to delete this session?')) {
-            try {
-                await (window as any).everclawAPI.sessions.delete(selectedAgent, selectedSession);
+    //     if (confirm('Are you sure you want to delete this session?')) {
+    //         try {
+    //             await (window as any).everclawAPI.sessions.delete(selectedAgent, selectedSession);
                 
-                // Refresh sessions list
-                const sessions: string[] = await (window as any).everclawAPI.sessions.list(selectedAgent);
-                const options = sessions.map(session => ({
-                    value: session,
-                    label: session === 'main' ? 'main (default)' : session,
-                }));
-                setSessionOptions(options);
+    //             // Refresh sessions list
+    //             const sessions: string[] = await (window as any).everclawAPI.sessions.list(selectedAgent);
+    //             const options = sessions.map(session => ({
+    //                 value: session,
+    //                 label: session === 'main' ? 'main (default)' : session,
+    //             }));
+    //             setSessionOptions(options);
                 
-                // Select first session
-                if (options.length > 0) {
-                    onSessionChange(options[0].value);
-                }
-            } catch (error) {
-                console.error('Failed to delete session:', error);
-            }
-        }
-    };
+    //             // Select first session
+    //             if (options.length > 0) {
+    //                 onSessionChange(options[0].value);
+    //             }
+    //         } catch (error) {
+    //             console.error('Failed to delete session:', error);
+    //         }
+    //     }
+    // };
 
     return (
         <>
@@ -152,11 +152,11 @@ export default function ChatHeader({
                                 title="New session" 
                                 onClick={() => setIsModalOpen(true)}
                             />
-                            <GlassButton 
+                            {/* <GlassButton 
                                 icon={<Trash2 size={16} />} 
                                 title={selectedSession === 'main' ? 'Cannot delete main session' : 'Delete session'} 
                                 onClick={handleDeleteSession}
-                            />
+                            /> */}
                         </>
                     )}
                 </div>

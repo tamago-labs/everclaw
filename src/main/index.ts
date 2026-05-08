@@ -2,11 +2,11 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import {
-  LLAMA_3_2_1B_INST_Q4_0,
+  QWEN3_1_7B_INST_Q4,
   loadModel,
   unloadModel,
   completion
-} from '@qvac/sdk'; 
+} from '@qvac/sdk';
 import { wdkService } from './services/wdk';
 import * as storage from './services/wdk/storage';
 import { registerAgentsIpcHandlers, initAgents } from './services/agents';
@@ -15,7 +15,6 @@ import { registerSessionsIpcHandlers } from './services/sessions';
 import { registerTokensHandlers } from './services/tokens';
 import { registerBalancesHandlers } from './services/balances';
 import { registerPricingHandlers } from './services/pricing';
-import { initializeMCP, disposeMCP, isMCPRunning } from './services/mcp';
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -55,8 +54,12 @@ function createWindow(): void {
 async function loadQVACService(): Promise<void> {
   try {
     modelId = await loadModel({
-      modelSrc: LLAMA_3_2_1B_INST_Q4_0,
+      modelSrc: QWEN3_1_7B_INST_Q4,
       modelType: 'llm',
+      modelConfig: {
+        ctx_size: 4096,
+        tools: true, // Enable tools support
+      },
       onProgress: (progress) => {
         const progressMsg = typeof progress === 'string' ? progress : JSON.stringify(progress);
         console.log(progress)
@@ -83,8 +86,7 @@ function registerWDKIpcHandlers(): void {
         isInitialized: wdkService.isInitialized(),
         hasStoredSeed: storage.isSeedStored(),
         isEncryptionAvailable: storage.isEncryptionAvailable(),
-        storageBackend: storage.getStorageBackend(),
-        isMCPRunning: isMCPRunning(),
+        storageBackend: storage.getStorageBackend()
       };
     } catch (error) {
       console.error('Failed to get WDK status:', error);
@@ -117,12 +119,8 @@ function registerWDKIpcHandlers(): void {
       const finalSeed = seedPhrase || wdkService.generateMnemonic(24);
       storage.encryptAndStoreSeed(finalSeed);
       wdkService.initializeWithSeed(finalSeed);
-      
-      // Initialize MCP server with new wallet
-      await initializeMCP(finalSeed);
-      console.log('[MCP] Server initialized after wallet creation');
-      logService('[MCP] Server initialized after wallet creation');
-      
+
+
       return finalSeed;
     } catch (error) {
       console.error('Failed to create wallet:', error);
@@ -137,12 +135,8 @@ function registerWDKIpcHandlers(): void {
       }
       storage.encryptAndStoreSeed(seedPhrase);
       wdkService.initializeWithSeed(seedPhrase);
-      
-      // Initialize MCP server with restored wallet
-      await initializeMCP(seedPhrase);
-      console.log('[MCP] Server initialized after wallet restore');
-      logService('[MCP] Server initialized after wallet restore');
-      
+
+
       return true;
     } catch (error) {
       console.error('Failed to restore wallet:', error);
@@ -164,7 +158,6 @@ function registerWDKIpcHandlers(): void {
   ipcMain.handle('wdk:deleteWallet', async () => {
     try {
       wdkService.dispose();
-      disposeMCP();
       storage.deleteStoredSeed();
       console.log('[MCP] Server disposed after wallet deletion');
       logService('[MCP] Server disposed after wallet deletion');
@@ -255,7 +248,7 @@ function registerQVACIpcHandlers(): void {
     try {
       if (!modelId) {
         modelId = await loadModel({
-          modelSrc: LLAMA_3_2_1B_INST_Q4_0,
+          modelSrc: QWEN3_1_7B_INST_Q4,
           modelType: 'llm',
           onProgress: (progress) => console.log(progress)
         });
@@ -301,12 +294,37 @@ function registerQVACIpcHandlers(): void {
         ...history,
         { role: 'user', content: message }
       ];
-      const result = completion({ modelId, history: conversationHistory, stream: true, kvCache: true });
+      const result = completion({ modelId, history: conversationHistory, stream: true, kvCache: true, captureThinking: true });
       let fullResponse = '';
-      for await (const token of result.tokenStream) {
-        fullResponse += token;
-        event.sender.send('ai:streamToken', token);
+
+      for await (const streamEvent of result.events) {
+        switch (streamEvent.type) {
+          case "contentDelta":
+            fullResponse += streamEvent.text;
+            event.sender.send('ai:streamToken', streamEvent.text);
+            break;
+          case "thinkingDelta":
+            event.sender.send('ai:streamToken', `\x1b[2m${streamEvent.text}\x1b[0m`);
+            break;
+          case "toolCall":
+            console.log(`\n→ Tool: ${streamEvent.call.name}(${JSON.stringify(streamEvent.call.arguments)})`);
+            break;
+          case "toolError":
+            console.warn(`\n⚠ Tool error [${streamEvent.error.code}]: ${streamEvent.error.message}`);
+            break;
+          case "completionStats":
+            console.log(`\n📊 ${streamEvent.stats.tokensPerSecond?.toFixed(1)} tok/s`);
+            break;
+          case "completionDone":
+            if (streamEvent.stopReason === "error" && "error" in streamEvent) {
+              console.error(`\n❌ ${streamEvent.error.message}`);
+            }
+            break;
+          case "rawDelta":
+            break;
+        }
       }
+
       // Send empty token to signal completion
       event.sender.send('ai:streamToken', '');
       return { success: true, response: fullResponse };
@@ -340,7 +358,7 @@ function registerQVACIpcHandlers(): void {
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.tamagolabs.everclaw');
-  
+
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window);
   });
@@ -352,11 +370,7 @@ app.whenReady().then(async () => {
       wdkService.initializeWithSeed(seedPhrase);
       console.log('[WDK] Initialized from stored seed');
       logService('[WDK] Initialized from stored seed');
-      
-      // Initialize MCP server for agents
-      await initializeMCP(seedPhrase);
-      console.log('[MCP] Server initialized');
-      logService('[MCP] Server initialized');
+
     } catch (error) {
       console.error('[WDK] Failed to initialize:', error);
       logService(`[WDK] Failed to initialize: ${error instanceof Error ? error.message : String(error)}`);
@@ -365,29 +379,29 @@ app.whenReady().then(async () => {
 
   // Initialize agents (create main agent if not exists)
   initAgents();
-  
+
   // Initialize logs directory
   initLogs();
   logService('[App] Starting Everclaw...');
-  
+
   // Register agents IPC handlers
   registerAgentsIpcHandlers();
-  
+
   // Register logs IPC handlers
   registerLogsIpcHandlers();
-  
+
   // Register sessions IPC handlers
   registerSessionsIpcHandlers();
-  
+
   // Register tokens IPC handlers
   registerTokensHandlers();
-  
+
   // Register balances IPC handlers
   registerBalancesHandlers();
-  
+
   // Register pricing IPC handlers
   registerPricingHandlers();
-  
+
   // Register IPC handlers
   registerWDKIpcHandlers();
   registerQVACIpcHandlers();
@@ -413,7 +427,7 @@ app.on('activate', () => {
 
 // Unload model before quitting
 app.on('before-quit', async () => {
-  
+
   if (modelId) {
     try {
       await unloadModel({ modelId });

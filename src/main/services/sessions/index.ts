@@ -43,9 +43,9 @@ export function registerSessionsIpcHandlers(): void {
   ipcMain.handle('sessions:delete', async (_event, agentSlug: string, sessionSlug: string) => {
     try {
       // Prevent deleting main session
-      if (sessionSlug === 'main') {
-        throw new Error('Cannot delete the main session');
-      }
+      // if (sessionSlug === 'main') {
+      //   throw new Error('Cannot delete the main session');
+      // }
       
       const deleted = storage.deleteSessionFolder(agentSlug, sessionSlug);
       
