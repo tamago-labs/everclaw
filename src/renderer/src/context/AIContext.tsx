@@ -89,6 +89,21 @@ export function AIProvider({ children }: AIProviderProps) {
     onToken: (token: string) => void
   ): Promise<string> => {
     return new Promise(async (resolve, reject) => {
+      let isStreamComplete = false;
+      
+      // Create a unique listener for this stream
+      const handleToken = (token: string) => {
+        if (isStreamComplete) return; // Ignore tokens after completion
+        
+        if (token === '') {
+          isStreamComplete = true;
+          // Remove listener after completion
+          (window as any).everclawAPI.ai.removeStreamTokenListener?.(handleToken);
+        } else {
+          onToken(token);
+        }
+      };
+      
       try {
         // Convert history to the format expected by backend
         const conversationHistory = history.map(msg => ({
@@ -96,22 +111,23 @@ export function AIProvider({ children }: AIProviderProps) {
           content: msg.content
         }));
 
-        // Listen for stream tokens
-        (window as any).everclawAPI.ai.onStreamToken((token: string) => {
-          if (token === '') {
-            // Stream complete
-          } else {
-            onToken(token);
-          }
-        });
+        // Register listener
+        (window as any).everclawAPI.ai.onStreamToken(handleToken);
 
         const result = await (window as any).everclawAPI.ai.sendPromptStream(message, conversationHistory);
+        
+        // In case of immediate response (no streaming), cleanup
+        isStreamComplete = true;
+        (window as any).everclawAPI.ai.removeStreamTokenListener?.(handleToken);
+        
         if (result.success && result.response) {
           resolve(result.response);
         } else {
           reject(new Error(result.error || 'Failed to get AI response'));
         }
       } catch (err) {
+        isStreamComplete = true;
+        (window as any).everclawAPI.ai.removeStreamTokenListener?.(handleToken);
         const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
         setError(errorMessage);
         reject(err);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import PageWrapper from '../components/common/PageWrapper';
@@ -41,6 +41,12 @@ export default function ChatPage() {
   // Read agent/session from URL params or use defaults
   const [selectedAgent, setSelectedAgent] = useState(() => searchParams.get('agent') || 'main');
   const [selectedSession, setSelectedSession] = useState(() => searchParams.get('session') || 'main');
+  
+  // Use ref to always have access to latest messages state (avoids stale closure)
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Load messages when agent/session changes
   useEffect(() => {
@@ -117,8 +123,8 @@ export default function ChatPage() {
       },
     ]);
 
-    // Get messages before this new one for conversation history (exclude the empty assistant message)
-    const conversationHistory = messages;
+    // Get messages before this new one for conversation history
+    const conversationHistory = messagesRef.current;
 
     try {
       await sendMessageStream(userMessage.content, conversationHistory, (token) => {
