@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     getStatus: () => ipcRenderer.invoke('wdk:getStatus'),
     generateMnemonic: (words?: 12 | 24) => ipcRenderer.invoke('wdk:generateMnemonic', words),
     validateSeedPhrase: (seedPhrase: string) => ipcRenderer.invoke('wdk:validateSeedPhrase', seedPhrase),
-    createWallet: (words?: 12 | 24) => ipcRenderer.invoke('wdk:createWallet', words),
+    createWallet: (seedPhrase?: string) => ipcRenderer.invoke('wdk:createWallet', seedPhrase),
     restoreWallet: (seedPhrase: string) => ipcRenderer.invoke('wdk:restoreWallet', seedPhrase),
     initializeFromStored: () => ipcRenderer.invoke('wdk:initializeFromStored'),
     deleteWallet: () => ipcRenderer.invoke('wdk:deleteWallet'),

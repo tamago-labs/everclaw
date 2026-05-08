@@ -108,12 +108,13 @@ function registerWDKIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle('wdk:createWallet', async (_event, words?: 12 | 24) => {
+  ipcMain.handle('wdk:createWallet', async (_event, seedPhrase?: string) => {
     try {
-      const seedPhrase = wdkService.generateMnemonic(words);
-      storage.encryptAndStoreSeed(seedPhrase);
-      wdkService.initializeWithSeed(seedPhrase);
-      return seedPhrase;
+      // If seed phrase is provided, use it; otherwise generate new one
+      const finalSeed = seedPhrase || wdkService.generateMnemonic(24);
+      storage.encryptAndStoreSeed(finalSeed);
+      wdkService.initializeWithSeed(finalSeed);
+      return finalSeed;
     } catch (error) {
       console.error('Failed to create wallet:', error);
       throw error;

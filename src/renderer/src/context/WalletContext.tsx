@@ -17,7 +17,7 @@ declare global {
         }>;
         generateMnemonic: (words?: 12 | 24) => Promise<string>;
         validateSeedPhrase: (seedPhrase: string) => Promise<boolean>;
-        createWallet: (words?: 12 | 24) => Promise<string>;
+        createWallet: (seedPhrase?: string) => Promise<string>;
         restoreWallet: (seedPhrase: string) => Promise<boolean>;
         initializeFromStored: () => Promise<boolean>;
         deleteWallet: () => Promise<boolean>;
@@ -58,7 +58,7 @@ interface WalletState {
 }
 
 interface WalletContextType extends WalletState {
-  createWallet: (words?: 12 | 24) => Promise<string>;
+  createWallet: (seedPhrase?: string) => Promise<string>;
   restoreWallet: (seedPhrase: string) => Promise<boolean>;
   deleteWallet: () => Promise<boolean>;
   revealSeedPhrase: () => Promise<string>;
@@ -143,11 +143,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Create wallet
-  const createWallet = useCallback(async (words?: 12 | 24) => {
+  const createWallet = useCallback(async (seedPhrase?: string) => {
     isDeletedRef.current = false;
-    const seedPhrase = await window.everclawAPI.wdk.createWallet(words);
+    const finalSeed = await window.everclawAPI.wdk.createWallet(seedPhrase);
     await refreshData();
-    return seedPhrase;
+    return finalSeed;
   }, [refreshData]);
 
   // Restore wallet

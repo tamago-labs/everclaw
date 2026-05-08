@@ -37,7 +37,7 @@ interface EverclawAPI {
     getStatus: () => Promise<WDKStatus>;
     generateMnemonic: (words?: 12 | 24) => Promise<string>;
     validateSeedPhrase: (seedPhrase: string) => Promise<boolean>;
-    createWallet: (words?: 12 | 24) => Promise<string>;
+    createWallet: (seedPhrase?: string) => Promise<string>;
     restoreWallet: (seedPhrase: string) => Promise<boolean>;
     initializeFromStored: () => Promise<boolean>;
     deleteWallet: () => Promise<boolean>;

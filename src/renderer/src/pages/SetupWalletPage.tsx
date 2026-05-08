@@ -50,7 +50,7 @@ export default function SetupWalletPage() {
     setIsLoading(true);
     try {
       if (action === 'create') {
-        await createWallet(24);
+        await createWallet(seedPhrase);
         showToast('Wallet created successfully!', 'success');
       } else {
         await restoreWallet(importPhrase.trim());
