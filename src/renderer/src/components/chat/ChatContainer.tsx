@@ -12,6 +12,7 @@ interface ChatContainerProps {
   messages: Message[];
   input: string;
   isGenerating: boolean;
+  isMCPRunning: boolean;
   onInputChange: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -20,6 +21,7 @@ export default function ChatContainer({
   messages, 
   input, 
   isGenerating, 
+  isMCPRunning,
   onInputChange, 
   onSubmit 
 }: ChatContainerProps) {
@@ -101,7 +103,26 @@ export default function ChatContainer({
 
         {/* Input Area */}
         <div className={`p-4 border-t ${isDark ? 'border-white/10' : 'border-black/5'}`}>
-          <form onSubmit={onSubmit} className="flex gap-3">
+          <form onSubmit={onSubmit} className="flex gap-0">
+            {/* MCP Status Indicator */}
+            <div 
+              className={`px-3 py-3 rounded-l-xl border-r flex items-center gap-2 ${
+                isDark 
+                  ? 'bg-white/5 border-white/10' 
+                  : 'bg-gray-100 border-black/5'
+              }`}
+              title={isMCPRunning ? 'MCP Server Running' : 'MCP Server Stopped'}
+            >
+              <div className={`w-2 h-2 rounded-full ${
+                isMCPRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-500'
+              }`} />
+              <span className={`text-xs font-medium ${
+                isDark ? 'text-white/70' : 'text-gray-600'
+              }`}>
+                {isMCPRunning ? 'MCP Ready' : 'MCP Off'}
+              </span>
+            </div>
+            
             <input
               ref={inputRef}
               type="text"
@@ -109,7 +130,7 @@ export default function ChatContainer({
               onChange={(e) => onInputChange(e.target.value)}
               placeholder="Type your message..."
               disabled={isGenerating}
-              className={`flex-1 px-4 py-3 rounded-xl outline-none transition-colors ${
+              className={`flex-1 px-4 py-3 outline-none transition-colors ${
                 isDark
                   ? 'bg-white/5 text-white placeholder-gray-500 focus:bg-white/10'
                   : 'bg-gray-100 text-gray-900 placeholder-gray-400 focus:bg-gray-200'
@@ -118,7 +139,7 @@ export default function ChatContainer({
             <button
               type="submit"
               disabled={!input.trim() || isGenerating}
-              className="px-4 py-3 rounded-xl bg-accent-primary text-[#0F1117] font-semibold hover:bg-accent-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-3 rounded-r-xl bg-accent-primary text-[#0F1117] font-semibold hover:bg-accent-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <Send size={18} />
             </button>

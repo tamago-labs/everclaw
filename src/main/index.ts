@@ -15,6 +15,7 @@ import { registerSessionsIpcHandlers } from './services/sessions';
 import { registerTokensHandlers } from './services/tokens';
 import { registerBalancesHandlers } from './services/balances';
 import { registerPricingHandlers } from './services/pricing';
+import { initializeMCP, disposeMCP, isMCPRunning } from './services/mcp';
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -83,6 +84,7 @@ function registerWDKIpcHandlers(): void {
         hasStoredSeed: storage.isSeedStored(),
         isEncryptionAvailable: storage.isEncryptionAvailable(),
         storageBackend: storage.getStorageBackend(),
+        isMCPRunning: isMCPRunning(),
       };
     } catch (error) {
       console.error('Failed to get WDK status:', error);
@@ -115,6 +117,12 @@ function registerWDKIpcHandlers(): void {
       const finalSeed = seedPhrase || wdkService.generateMnemonic(24);
       storage.encryptAndStoreSeed(finalSeed);
       wdkService.initializeWithSeed(finalSeed);
+      
+      // Initialize MCP server with new wallet
+      await initializeMCP(finalSeed);
+      console.log('[MCP] Server initialized after wallet creation');
+      logService('[MCP] Server initialized after wallet creation');
+      
       return finalSeed;
     } catch (error) {
       console.error('Failed to create wallet:', error);
@@ -129,6 +137,12 @@ function registerWDKIpcHandlers(): void {
       }
       storage.encryptAndStoreSeed(seedPhrase);
       wdkService.initializeWithSeed(seedPhrase);
+      
+      // Initialize MCP server with restored wallet
+      await initializeMCP(seedPhrase);
+      console.log('[MCP] Server initialized after wallet restore');
+      logService('[MCP] Server initialized after wallet restore');
+      
       return true;
     } catch (error) {
       console.error('Failed to restore wallet:', error);
@@ -150,7 +164,10 @@ function registerWDKIpcHandlers(): void {
   ipcMain.handle('wdk:deleteWallet', async () => {
     try {
       wdkService.dispose();
+      disposeMCP();
       storage.deleteStoredSeed();
+      console.log('[MCP] Server disposed after wallet deletion');
+      logService('[MCP] Server disposed after wallet deletion');
       return true;
     } catch (error) {
       console.error('Failed to delete wallet:', error);
@@ -328,14 +345,21 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window);
   });
 
-  // Load WDK service if there's a stored seed
+  // Load WDK and MCP services if there's a stored seed
   if (storage.isSeedStored()) {
     try {
       const seedPhrase = storage.decryptStoredSeed();
       wdkService.initializeWithSeed(seedPhrase);
-      console.log('WDK initialized from stored seed');
+      console.log('[WDK] Initialized from stored seed');
+      logService('[WDK] Initialized from stored seed');
+      
+      // Initialize MCP server for agents
+      await initializeMCP(seedPhrase);
+      console.log('[MCP] Server initialized');
+      logService('[MCP] Server initialized');
     } catch (error) {
-      console.error('Failed to initialize WDK from stored seed:', error);
+      console.error('[WDK] Failed to initialize:', error);
+      logService(`[WDK] Failed to initialize: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -389,7 +413,6 @@ app.on('activate', () => {
 
 // Unload model before quitting
 app.on('before-quit', async () => {
-  logService('[App] Shutting down Everclaw...');
   
   if (modelId) {
     try {

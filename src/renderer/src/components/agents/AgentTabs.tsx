@@ -1,6 +1,6 @@
 import { useTheme } from '../../context/ThemeContext';
 
-type Tab = 'overview' | 'files' | 'tools' | 'cron-jobs';
+type Tab = 'overview' | 'files' | 'cron-jobs';
 
 interface AgentTabsProps {
     activeTab: Tab;
@@ -12,8 +12,7 @@ export default function AgentTabs({ activeTab, onTabChange }: AgentTabsProps) {
 
     const tabs: { id: Tab; label: string }[] = [
         { id: 'overview', label: 'Overview' },
-        { id: 'files', label: 'Files' },
-        { id: 'tools', label: 'Tools' },
+        { id: 'files', label: 'Files' }, 
         { id: 'cron-jobs', label: 'Cron Jobs' }
     ];
 

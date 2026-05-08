@@ -5,12 +5,11 @@ import GlassDropdown from '../components/common/GlassDropdown';
 import GlassButton from '../components/common/GlassButton';
 import AgentTabs from '../components/agents/AgentTabs';
 import AgentOverview from '../components/agents/AgentOverview';
-import AgentFiles from '../components/agents/AgentFiles';
-import AgentTools from '../components/agents/AgentTools';
+import AgentFiles from '../components/agents/AgentFiles'; 
 import AgentCronJobs from '../components/agents/AgentCronJobs'; 
 import CreateAgentModal from '../components/agents/CreateAgentModal';
 
-type Tab = 'overview' | 'files' | 'tools' | 'cron-jobs';
+type Tab = 'overview' | 'files' | 'cron-jobs';
 
 interface Agent {
   slug: string;
@@ -93,9 +92,7 @@ export default function AgentsPage() {
       case 'overview':
         return <AgentOverview agentName={getAgentName()} />;
       case 'files':
-        return <AgentFiles />;
-      case 'tools':
-        return <AgentTools />;
+        return <AgentFiles />; 
       case 'cron-jobs':
         return <AgentCronJobs />; 
       default:
