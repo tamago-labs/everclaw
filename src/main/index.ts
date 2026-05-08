@@ -12,6 +12,7 @@ import * as storage from './services/wdk/storage';
 import { registerAgentsIpcHandlers, initAgents } from './services/agents';
 import { registerLogsIpcHandlers, initLogs, log as logService } from './services/logs';
 import { registerSessionsIpcHandlers } from './services/sessions';
+import { registerTokensHandlers } from './services/tokens';
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -350,6 +351,9 @@ app.whenReady().then(async () => {
   
   // Register sessions IPC handlers
   registerSessionsIpcHandlers();
+  
+  // Register tokens IPC handlers
+  registerTokensHandlers();
   
   // Register IPC handlers
   registerWDKIpcHandlers();

@@ -1,6 +1,6 @@
 import { useTheme } from '../../context/ThemeContext';
 
-type Tab = 'logs' | 'about' | 'wallet';
+type Tab = 'logs' | 'tokens' | 'wallet' | 'about';
 
 interface SettingsTabsProps {
   activeTab: Tab;
@@ -53,15 +53,15 @@ export default function SettingsTabs({ activeTab, onTabChange }: SettingsTabsPro
             )}
           </button>
           <button
-            onClick={() => onTabChange('about')}
+            onClick={() => onTabChange('tokens')}
             className={`relative px-5 py-2.5 font-medium text-sm transition-all ${
-              activeTab === 'about'
+              activeTab === 'tokens'
                 ? isDark ? 'text-white' : 'text-gray-900'
                 : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            About
-            {activeTab === 'about' && (
+            Tokens
+            {activeTab === 'tokens' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-primary rounded-full" />
             )}
           </button>
@@ -75,6 +75,19 @@ export default function SettingsTabs({ activeTab, onTabChange }: SettingsTabsPro
           >
             Wallet
             {activeTab === 'wallet' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-primary rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => onTabChange('about')}
+            className={`relative px-5 py-2.5 font-medium text-sm transition-all ${
+              activeTab === 'about'
+                ? isDark ? 'text-white' : 'text-gray-900'
+                : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            About
+            {activeTab === 'about' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-primary rounded-full" />
             )}
           </button>

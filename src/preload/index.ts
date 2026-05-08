@@ -68,4 +68,13 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     loadMessages: (agentSlug: string, sessionSlug: string) => ipcRenderer.invoke('sessions:loadMessages', agentSlug, sessionSlug),
     getAllSessions: () => ipcRenderer.invoke('sessions:getAllSessions'),
   },
+
+  // Tokens operations
+  tokens: {
+    list: () => ipcRenderer.invoke('tokens:list'),
+    getCustom: () => ipcRenderer.invoke('tokens:getCustom'),
+    add: (chain: string, token: { symbol: string; contractAddress: string; decimals: number }) => ipcRenderer.invoke('tokens:add', chain, token),
+    remove: (chain: string, symbol: string) => ipcRenderer.invoke('tokens:remove', chain, symbol),
+    clear: () => ipcRenderer.invoke('tokens:clear'),
+  },
 });

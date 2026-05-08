@@ -5,8 +5,9 @@ import SettingsContent from '../components/settings/SettingsContent';
 import AboutTab from '../components/settings/AboutTab';
 import WalletTab from '../components/settings/WalletTab';
 import LogsTab from '../components/settings/LogsTab';
+import TokensTab from '../components/settings/TokensTab';
 
-type Tab = 'logs' | 'about' | 'wallet';
+type Tab = 'logs' | 'tokens' | 'wallet' | 'about';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('logs');
@@ -16,8 +17,9 @@ export default function SettingsPage() {
       <SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
       <SettingsContent>
         {activeTab === 'logs' && <LogsTab />}
-        {activeTab === 'about' && <AboutTab />}
+        {activeTab === 'tokens' && <TokensTab />}
         {activeTab === 'wallet' && <WalletTab />}
+        {activeTab === 'about' && <AboutTab />}
       </SettingsContent>
     </PageWrapper>
   );
