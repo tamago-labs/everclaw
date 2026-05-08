@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface WalletConfirmStepProps {
@@ -16,13 +15,9 @@ const chainImages = {
 };
 
 const chains = ['Ethereum', 'Polygon', 'Arbitrum', 'Solana', 'Bitcoin'] as const;
-const DEFAULT_CHAINS = ['Ethereum', 'Solana', 'Bitcoin'] as const;
 
 export default function WalletConfirmStep({ action, isLoading, onConfirm }: WalletConfirmStepProps) {
   const { isDark } = useTheme();
-  const [showAll, setShowAll] = useState(false);
-
-  const visibleChains = showAll ? chains : DEFAULT_CHAINS;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -65,8 +60,8 @@ export default function WalletConfirmStep({ action, isLoading, onConfirm }: Wall
         }`} />
 
         {/* Chain list */}
-        <div className="relative z-10 space-y-3">
-          {visibleChains.map((chain) => (
+        <div className="relative z-10 grid grid-cols-3 gap-3">
+          {chains.map((chain) => (
             <div
               key={chain}
               className={`flex items-center gap-3 p-3 rounded-xl ${
@@ -84,14 +79,6 @@ export default function WalletConfirmStep({ action, isLoading, onConfirm }: Wall
             </div>
           ))}
         </div>
-
-        {/* Show all toggle */}
-        <button
-          onClick={() => setShowAll(!showAll)}
-          className="relative z-10 mt-4 text-sm text-accent-primary hover:text-accent-primary/80 transition-colors"
-        >
-          {showAll ? 'Show less' : 'Show all'}
-        </button>
       </div>
 
       {/* Confirm button */}

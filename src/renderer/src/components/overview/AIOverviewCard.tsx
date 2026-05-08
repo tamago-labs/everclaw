@@ -69,7 +69,7 @@ export default function AIOverviewCard() {
     { label: 'Status', value: isReady ? 'Ready' : 'Loading...' },
     { label: 'Model', value: isReady ? 'Llama-3.2-1B-Instruct' : '--' },
     { label: 'Uptime', value: uptime },
-    { label: 'Sessions', value: sessionsCount }
+    { label: 'Sessions / Running Jobs', value: `${sessionsCount} / 0` }
   ];
 
   return (
