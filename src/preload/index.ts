@@ -77,4 +77,9 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     remove: (chain: string, symbol: string) => ipcRenderer.invoke('tokens:remove', chain, symbol),
     clear: () => ipcRenderer.invoke('tokens:clear'),
   },
+
+  // Balances operations
+  balances: {
+    getAll: () => ipcRenderer.invoke('balances:getAll'),
+  },
 });

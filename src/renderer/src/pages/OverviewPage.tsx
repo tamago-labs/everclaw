@@ -4,6 +4,7 @@ import AccountCard from '../components/common/AccountCard';
 import WelcomeCard from '../components/common/WelcomeCard';
 import PageWrapper from '../components/common/PageWrapper';
 import AIOverviewCard from '../components/overview/AIOverviewCard';
+import TokenBalancesSection from '../components/overview/TokenBalancesSection';
 import { useWallet } from '../context/WalletContext';
 
 export default function OverviewPage() {
@@ -34,6 +35,9 @@ export default function OverviewPage() {
         />
         <AIOverviewCard />
       </div>
+
+      <TokenBalancesSection />
+
     </PageWrapper>
   );
 }

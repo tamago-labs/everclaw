@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, Info } from 'lucide-react';
+import GlassDropdown from '../common/GlassDropdown';
 import { useTheme } from '../../context/ThemeContext';
 
 interface Token {
@@ -95,21 +96,14 @@ export default function TokensTab() {
         </div>
       </div>
 
-      {/* Chain Tabs */}
-      <div className={`flex gap-2 p-1 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
-        {chains.map((chain) => (
-          <button
-            key={chain}
-            onClick={() => setActiveChain(chain)}
-            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              activeChain === chain
-                ? isDark ? 'bg-white/10 text-white' : 'bg-white text-gray-900 shadow-sm'
-                : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            {chainLabels[chain]}
-          </button>
-        ))}
+      {/* Chain Filter */}
+      <div>
+        <GlassDropdown
+          label="Chain"
+          value={activeChain}
+          options={chains.map(chain => ({ value: chain, label: chainLabels[chain] }))}
+          onChange={(value) => setActiveChain(value as ChainId)}
+        />
       </div>
 
       {/* Bitcoin notice */}

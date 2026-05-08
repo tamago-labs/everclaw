@@ -13,6 +13,7 @@ import { registerAgentsIpcHandlers, initAgents } from './services/agents';
 import { registerLogsIpcHandlers, initLogs, log as logService } from './services/logs';
 import { registerSessionsIpcHandlers } from './services/sessions';
 import { registerTokensHandlers } from './services/tokens';
+import { registerBalancesHandlers } from './services/balances';
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -354,6 +355,9 @@ app.whenReady().then(async () => {
   
   // Register tokens IPC handlers
   registerTokensHandlers();
+  
+  // Register balances IPC handlers
+  registerBalancesHandlers();
   
   // Register IPC handlers
   registerWDKIpcHandlers();
