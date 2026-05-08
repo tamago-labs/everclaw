@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
+import { RefreshCw } from 'lucide-react';
 import GlassDropdown from '../common/GlassDropdown';
+import GlassButton from '../common/GlassButton';
 import { useTheme } from '../../context/ThemeContext';
+import { useWallet } from '../../context/WalletContext';
 
 type Tab = 'balances' | 'transactions';
 
-// const chainImages: Record<string, string> = {
-//   ethereum: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png',
-//   polygon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/28321.png',
-//   arbitrum: 'https://assets.coingecko.com/coins/images/16547/standard/arb.jpg?1721358242',
-//   solana: 'https://icons.llamao.fi/icons/chains/rsz_solana?w=48&h=48',
-//   bitcoin: 'https://assets.coingecko.com/coins/images/1/standard/bitcoin.png?1696501400',
-// };
+// Token image URLs for native tokens
+const TOKEN_IMAGES: Record<string, string> = {
+  ETH: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png',
+  POL: 'https://s2.coinmarketcap.com/static/img/coins/64x64/28321.png',
+  SOL: 'https://icons.llamao.fi/icons/chains/rsz_solana?w=48&h=48',
+  BTC: 'https://assets.coingecko.com/coins/images/1/standard/bitcoin.png?1696501400'
+};
 
 const chainLabels: Record<string, string> = {
   ethereum: 'Ethereum',
@@ -32,6 +35,7 @@ interface TokenBalance {
   balanceFormatted: string;
   value: string;
   price: number;
+  imageUrl: string;
 }
 
 interface BalanceResult {
@@ -53,14 +57,17 @@ interface AllBalances {
 export default function TokenBalancesSection() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
+  const { hasWallet } = useWallet();
   const [activeTab, setActiveTab] = useState<Tab>('balances');
-  const [selectedChain, setSelectedChain] = useState<string>('ethereum');
+  const [selectedChain, setSelectedChain] = useState<string>('solana');
   const [balances, setBalances] = useState<AllBalances>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchBalances();
-  }, []);
+    if (hasWallet) {
+      fetchBalances();
+    }
+  }, [hasWallet]);
 
   const fetchBalances = async () => {
     try {
@@ -106,8 +113,9 @@ export default function TokenBalancesSection() {
       solana: 'SOL',
       bitcoin: 'BTC',
     };
+    const nativeSymbol = nativeSymbols[selectedChain] || selectedChain.toUpperCase();
     chainTokens.push({
-      symbol: nativeSymbols[selectedChain] || selectedChain.toUpperCase(),
+      symbol: nativeSymbol,
       contractAddress: 'native',
       chain: selectedChain,
       decimals: selectedChain === 'solana' ? 9 : selectedChain === 'bitcoin' ? 8 : 18,
@@ -116,6 +124,7 @@ export default function TokenBalancesSection() {
       balanceFormatted: selectedBalance.nativeBalanceFormatted || '0',
       value: selectedBalance.nativeValue || '$0',
       price: 0,
+      imageUrl: '', // Native tokens will use their symbol's image
     });
     
     // Add other tokens
@@ -216,13 +225,18 @@ export default function TokenBalancesSection() {
         <div className="relative z-10">
           {activeTab === 'balances' ? (
             <div className="space-y-4">
-              {/* Chain Filter Dropdown */}
-              <div className="mb-4">
+              {/* Chain Filter + Refresh */}
+              <div className="flex items-center justify-between mb-4">
                 <GlassDropdown
                   label="Chain"
                   value={selectedChain}
                   options={chainOptions}
                   onChange={setSelectedChain}
+                />
+                <GlassButton 
+                  icon={<RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />} 
+                  title="Refresh balances" 
+                  onClick={fetchBalances}
                 />
               </div>
 
@@ -238,7 +252,13 @@ export default function TokenBalancesSection() {
                   <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase">Value</span>
                 </div>
 
-                {isLoading ? (
+                {!hasWallet ? (
+                  <div className={`rounded-b-xl p-8 text-center ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      No wallet configured
+                    </p>
+                  </div>
+                ) : isLoading ? (
                   <div className={`px-6 py-8 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                     Loading balances...
                   </div>
@@ -254,7 +274,17 @@ export default function TokenBalancesSection() {
                         isDark ? 'border-white/5' : 'border-black/5'
                       } ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}
                     >
-                      <span className="text-sm font-medium text-[var(--color-text-primary)]">{token.symbol}</span>
+                      <div className="flex items-center gap-2">
+                        {(token.imageUrl || TOKEN_IMAGES[token.symbol]) && (
+                          <img 
+                            src={token.imageUrl || TOKEN_IMAGES[token.symbol]} 
+                            alt={token.symbol} 
+                            className="w-5 h-5 rounded-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        )}
+                        <span className="text-sm font-medium text-[var(--color-text-primary)]">{token.symbol}</span>
+                      </div>
                       <span className="text-sm text-[var(--color-text-muted)]">{token.balanceFormatted}</span>
                       <span className="text-sm text-[var(--color-text-primary)]">{token.value}</span>
                     </div>
@@ -272,13 +302,18 @@ export default function TokenBalancesSection() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Chain Filter Dropdown */}
-              <div className="mb-4">
+              {/* Chain Filter + Refresh */}
+              <div className="flex items-center justify-between mb-4">
                 <GlassDropdown
                   label="Chain"
                   value={selectedChain}
                   options={chainOptions}
                   onChange={setSelectedChain}
+                />
+                <GlassButton 
+                  icon={<RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />} 
+                  title="Refresh" 
+                  onClick={fetchBalances}
                 />
               </div>
 

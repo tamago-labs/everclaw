@@ -1,5 +1,6 @@
 import { listTokens, TokenConfig } from '../tokens/storage';
 import { wdkService } from '../wdk/WDKService';
+import { getTokenImageUrl } from '../../utils/tokenImages';
 
 // @ts-ignore - Pricing provider is ESM module
 import WDKPricingModule from '@tetherto/wdk-pricing-provider';
@@ -15,6 +16,7 @@ export interface TokenBalance {
   balanceFormatted: string;
   value: string;
   price: number;
+  imageUrl: string;
 }
 
 export interface BalanceResult {
@@ -163,6 +165,7 @@ export async function getAllBalances(): Promise<BalanceResult[]> {
         balanceFormatted: formatted,
         value,
         price,
+        imageUrl: getTokenImageUrl(token.symbol),
       });
     }
 
