@@ -1,7 +1,5 @@
 import { ipcMain } from 'electron';
 import { z } from 'zod';
-import { weatherTool } from './weather';
-import { horoscopeTool } from './horoscope';
 import { getAddressTool } from './get_address';
 import { getBalanceTool } from './get_balance';
 import { getPriceTool } from './get_price';
@@ -38,8 +36,6 @@ export interface ToolInfo {
 
 // All tool definitions - each tool file exports its own definition with execute function
 const toolDefinitions: ToolDefinition[] = [
-  weatherTool as unknown as ToolDefinition,
-  horoscopeTool as unknown as ToolDefinition,
   getAddressTool as unknown as ToolDefinition,
   getBalanceTool as unknown as ToolDefinition,
   getPriceTool as unknown as ToolDefinition,
@@ -71,7 +67,7 @@ export function getToolInfo(): ToolInfo[] {
     // Get metadata from tool definition
     const toolWithMeta = tool as ToolDefinitionWithMetadata;
     const meta = toolWithMeta.metadata || { uiDescription: '', tags: [], requiredTools: [], parameters: {} };
-    
+
     return {
       name: tool.name,
       description: tool.description,
@@ -126,7 +122,7 @@ export function getToolsStatus(): { name: string; enabled: boolean }[] {
 export function registerToolsIpcHandlers(): void {
   // Ensure config exists on init
   ensureToolsConfigExists();
-  
+
   // Get all tools with their status
   ipcMain.handle('tools:list', async () => {
     try {

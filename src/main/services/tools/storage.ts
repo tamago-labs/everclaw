@@ -5,9 +5,7 @@ import * as fs from 'fs';
 const TOOLS_PREFS_FILE = 'tools_preferences.json';
 
 // Default tools - all disabled by default
-const defaultToolsPreferences: Record<string, boolean> = {
-  get_weather: false,
-  get_horoscope: false,
+const defaultToolsPreferences: Record<string, boolean> = { 
   get_address: false,
   get_balance: false,
   get_price: false

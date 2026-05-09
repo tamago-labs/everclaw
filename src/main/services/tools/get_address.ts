@@ -8,7 +8,7 @@ export const getAddressSchema = z.object({
 // Tool metadata for UI
 export const getAddressMetadata = {
   uiDescription: 'Get the user\'s wallet address on blockchain networks. If no chain is specified, returns addresses for all supported chains.',
-  tags: ['wallet', 'address', 'blockchain'],
+  tags: ['wallet', 'ethereum', 'polygon', 'arbitrum', 'solana', 'bitcoin'],
   requiredTools: [] as string[],
   parameters: {
     chain: { type: 'string', description: 'Blockchain network (optional): ethereum, polygon, arbitrum, solana, bitcoin', required: false },
