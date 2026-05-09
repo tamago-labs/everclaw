@@ -27,7 +27,8 @@ interface AIContextType {
     message: string, 
     history: Message[], 
     onToken: (token: string) => void,
-    onThinkingToken?: (token: string) => void
+    onThinkingToken?: (token: string) => void,
+    agentSlug?: string
   ) => Promise<string>;
   selectModel: (modelType: '4B' | '1.7B') => Promise<boolean>;
   getModels: () => Promise<void>;
@@ -151,7 +152,8 @@ export function AIProvider({ children }: AIProviderProps) {
     message: string, 
     history: Message[], 
     onToken: (token: string) => void,
-    onThinkingToken?: (token: string) => void
+    onThinkingToken?: (token: string) => void,
+    agentSlug?: string
   ): Promise<string> => {
     return new Promise(async (resolve, reject) => {
       let isStreamComplete = false;
@@ -193,7 +195,7 @@ export function AIProvider({ children }: AIProviderProps) {
         (window as any).everclawAPI.ai.onStreamToken(handleToken);
         (window as any).everclawAPI.ai.onStreamThinking(handleThinking);
 
-        const result = await (window as any).everclawAPI.ai.sendPromptStream(message, conversationHistory);
+        const result = await (window as any).everclawAPI.ai.sendPromptStream(message, conversationHistory, agentSlug);
         
         // In case of immediate response (no streaming), cleanup
         isStreamComplete = true;

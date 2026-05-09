@@ -92,7 +92,7 @@ export default function AgentsPage() {
       case 'overview':
         return <AgentOverview agentName={getAgentName()} />;
       case 'files':
-        return <AgentFiles />; 
+        return <AgentFiles agentSlug={selectedAgent} />; 
       case 'cron-jobs':
         return <AgentCronJobs />; 
       default:

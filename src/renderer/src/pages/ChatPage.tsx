@@ -143,7 +143,7 @@ export default function ChatPage() {
       }, (thinkingToken) => {
         // Update streaming thinking content
         setStreamingThinking((prev) => prev + thinkingToken);
-      });
+      }, selectedAgent);
     } catch (err) {
       console.error('Failed to get response:', err);
       // Update the failed message with error
