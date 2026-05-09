@@ -4,10 +4,10 @@ import * as fs from 'fs';
 
 const TOOLS_PREFS_FILE = 'tools_preferences.json';
 
-// Default tools with enabled state
+// Default tools - all disabled by default
 const defaultToolsPreferences: Record<string, boolean> = {
-  get_weather: true,
-  get_horoscope: true,
+  get_weather: false,
+  get_horoscope: false,
 };
 
 export interface ToolsPreferences {
@@ -16,6 +16,25 @@ export interface ToolsPreferences {
 
 function getToolsPrefsPath(): string {
   return join(app.getPath('userData'), TOOLS_PREFS_FILE);
+}
+
+// Ensure config file exists with defaults
+export function ensureToolsConfigExists(): void {
+  const prefsPath = getToolsPrefsPath();
+  try {
+    if (!fs.existsSync(prefsPath)) {
+      // Create directory if needed
+      const dir = app.getPath('userData');
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      // Write default preferences
+      fs.writeFileSync(prefsPath, JSON.stringify(defaultToolsPreferences, null, 2));
+      console.log('[Tools] Created default preferences file');
+    }
+  } catch (error) {
+    console.error('[Tools] Failed to create preferences file:', error);
+  }
 }
 
 export function getToolsPreferences(): ToolsPreferences {
@@ -55,5 +74,5 @@ export function toggleTool(toolName: string, enabled: boolean): void {
 
 export function isToolEnabled(toolName: string): boolean {
   const prefs = getToolsPreferences();
-  return prefs[toolName] ?? true;
+  return prefs[toolName] ?? false;
 }

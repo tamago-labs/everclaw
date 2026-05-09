@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import { z } from 'zod';
 import { weatherTool } from './weather';
 import { horoscopeTool } from './horoscope';
-import { getToolsPreferences, saveToolsPreferences, isToolEnabled } from './storage';
+import { getToolsPreferences, saveToolsPreferences, isToolEnabled, ensureToolsConfigExists } from './storage';
 
 // Tool interface - matches QVAC tool format for tools parameter
 interface QvacTool {
@@ -15,6 +15,22 @@ interface QvacTool {
 // Extended tool interface with execute function for our use
 interface ToolDefinition extends QvacTool {
   execute: (args: Record<string, unknown>) => Promise<string>;
+}
+
+// Tool info for UI - includes parameter schema as object
+export interface ToolInfo {
+  name: string;
+  description: string;           // Short description for AI to interpret
+  uiDescription: string;       // Long description for UI display
+  tags: string[];               // Tags for organization (shown as badges)
+  requiredTools: string[];     // Dependencies (other tools that must be enabled)
+  parameters: {
+    [key: string]: {
+      type: string;
+      description?: string;
+      required: boolean;
+    };
+  };
 }
 
 // All tool definitions - each tool file exports its own definition with execute function
@@ -31,6 +47,34 @@ export function getAllToolDefinitions(): QvacTool[] {
     description: tool.description,
     parameters: tool.parameters,
   }));
+}
+
+// Extended tool definition with metadata
+interface ToolDefinitionWithMetadata extends ToolDefinition {
+  metadata?: {
+    uiDescription: string;
+    tags: string[];
+    requiredTools: string[];
+    parameters: Record<string, { type: string; description: string; required: boolean }>;
+  };
+}
+
+// Get tool info for UI display
+export function getToolInfo(): ToolInfo[] {
+  return toolDefinitions.map(tool => {
+    // Get metadata from tool definition
+    const toolWithMeta = tool as ToolDefinitionWithMetadata;
+    const meta = toolWithMeta.metadata || { uiDescription: '', tags: [], requiredTools: [], parameters: {} };
+    
+    return {
+      name: tool.name,
+      description: tool.description,
+      uiDescription: meta.uiDescription,
+      tags: meta.tags,
+      requiredTools: meta.requiredTools,
+      parameters: meta.parameters,
+    };
+  });
 }
 
 // Get only enabled tools based on preferences
@@ -74,12 +118,25 @@ export function getToolsStatus(): { name: string; enabled: boolean }[] {
 
 // Register tools IPC handlers
 export function registerToolsIpcHandlers(): void {
+  // Ensure config exists on init
+  ensureToolsConfigExists();
+  
   // Get all tools with their status
   ipcMain.handle('tools:list', async () => {
     try {
       return getToolsStatus();
     } catch (error) {
       console.error('Failed to list tools:', error);
+      throw error;
+    }
+  });
+
+  // Get tool details for UI
+  ipcMain.handle('tools:getInfo', async () => {
+    try {
+      return getToolInfo();
+    } catch (error) {
+      console.error('Failed to get tool info:', error);
       throw error;
     }
   });

@@ -5,13 +5,25 @@ export const weatherSchema = z.object({
   country: z.string().optional().describe('Country code'),
 });
 
+// Tool metadata for UI
+export const weatherMetadata = {
+  uiDescription: 'Get real-time weather information for any city worldwide. Returns temperature, conditions, humidity, and more. Perfect for travel planning or daily weather updates.',
+  tags: ['weather', 'realtime', 'api'],
+  requiredTools: [] as string[],
+  parameters: {
+    city: { type: 'string', description: 'City name', required: true },
+    country: { type: 'string', description: 'Country code', required: false },
+  },
+};
+
 export const weatherTool = {
   type: 'function' as const,
   name: 'get_weather',
   description: 'Get current weather for a city',
   parameters: weatherSchema,
-  execute: async ({ city, country }: { city: string; country?: string }) => {
+  metadata: weatherMetadata,
+  execute: async (result: { city: string; country?: string }) => {
     // Mock implementation - replace with real API call
-    return `The weather in ${city} is sunny, 22°C with light clouds.`;
+    return `The weather in ${result.city} is sunny, 22°C with light clouds.`;
   }
 };

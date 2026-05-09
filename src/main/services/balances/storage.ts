@@ -71,7 +71,7 @@ export async function getNativeBalance(chain: string): Promise<{ balance: string
   }
 }
 
-export async function getTokenBalance(chain: string, tokenAddress: string, decimals: number): Promise<string> {
+export async function getTokenBalance(chain: string, tokenAddress: string, _decimals: number): Promise<string> {
   try {
     const account = await wdkService.getInstance().getAccount(chain, 0);
     const balance = await account.getTokenBalance(tokenAddress);

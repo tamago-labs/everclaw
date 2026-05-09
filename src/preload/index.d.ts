@@ -30,6 +30,21 @@ interface AIResult {
   modelType?: '4B' | '1.7B';
 }
 
+interface ToolParameter {
+  type: string;
+  description?: string;
+  required: boolean;
+}
+
+interface ToolInfo {
+  name: string;
+  description: string;       // Short description for AI
+  uiDescription?: string;     // Long description for UI
+  tags?: string[];            // Tags for organization
+  requiredTools?: string[];   // Dependencies
+  parameters: Record<string, ToolParameter>;
+}
+
 interface EverclawAPI {
   // Window controls
   minimize: () => void;
@@ -74,6 +89,13 @@ interface EverclawAPI {
     getLastPrice: (symbol: string) => Promise<number>;
     getPrices: (symbols: string[]) => Promise<Record<string, number>>;
   };
+
+  // Tools operations
+  tools: {
+    list: () => Promise<{ name: string; enabled: boolean }[]>;
+    getInfo: () => Promise<ToolInfo[]>;
+    toggle: (toolName: string, enabled: boolean) => Promise<{ success: boolean }>;
+  };
 }
 
 declare global {
@@ -82,4 +104,4 @@ declare global {
   }
 }
 
-export { EverclawAPI, WDKStatus, AccountInfo, AIStatus, AIResult };
+export { EverclawAPI, WDKStatus, AccountInfo, AIStatus, AIResult, ToolInfo };
