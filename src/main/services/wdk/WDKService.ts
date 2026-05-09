@@ -144,6 +144,110 @@ export class WDKService {
     }
 
     /**
+     * Approve token spending (EVM only)
+     */
+    async approve(
+        chain: 'ethereum' | 'polygon' | 'arbitrum',
+        tokenAddress: string,
+        spender: string,
+        amount: string,
+        decimals: number
+    ): Promise<{ hash: string; fee: string }> {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+        const account = await wdkInstance.getAccount(chain, 0);
+        
+        // Convert human-readable amount to base units
+        const baseAmount = (BigInt(amount) * BigInt(10 ** decimals)).toString();
+        
+        const result = await account.approve({
+            token: tokenAddress,
+            spender,
+            amount: baseAmount,
+        });
+        
+        return {
+            hash: result.hash,
+            fee: result.fee?.toString() || '0',
+        };
+    }
+
+    /**
+     * Transfer tokens (EVM only)
+     */
+    async transfer(
+        chain: 'ethereum' | 'polygon' | 'arbitrum',
+        tokenAddress: string,
+        to: string,
+        amount: string,
+        decimals: number
+    ): Promise<{ hash: string; fee: string }> {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+        const account = await wdkInstance.getAccount(chain, 0);
+        
+        // Convert human-readable amount to base units
+        const baseAmount = (BigInt(amount) * BigInt(10 ** decimals)).toString();
+        
+        const result = await account.transfer({
+            token: tokenAddress,
+            recipient: to,
+            amount: baseAmount,
+        });
+        
+        return {
+            hash: result.hash,
+            fee: result.fee?.toString() || '0',
+        };
+    }
+
+    /**
+     * Transfer tokens (Solana)
+     */
+    async transferSolana(
+        tokenAddress: string,
+        to: string,
+        amount: string,
+        decimals: number
+    ): Promise<{ hash: string; fee: string }> {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+        const account = await wdkInstance.getAccount('solana', 0);
+        
+        const baseAmount = (BigInt(amount) * BigInt(10 ** decimals)).toString();
+        
+        const result = await account.transfer({
+            token: tokenAddress,
+            recipient: to,
+            amount: baseAmount,
+        });
+        
+        return {
+            hash: result.hash,
+            fee: result.fee?.toString() || '0',
+        };
+    }
+
+    /**
+     * Send native currency (all chains)
+     */
+    async sendNative(
+        chain: 'ethereum' | 'polygon' | 'arbitrum' | 'solana' | 'bitcoin',
+        to: string,
+        amount: string
+    ): Promise<{ hash: string; fee: string }> {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+        const account = await wdkInstance.getAccount(chain, 0);
+        
+        const result = await account.sendTransaction({
+            to,
+            value: amount,
+        });
+        
+        return {
+            hash: result.hash,
+            fee: result.fee?.toString() || '0',
+        };
+    }
+
+    /**
      * Dispose all sensitive data from memory
      */
     dispose(): void {
