@@ -9,7 +9,6 @@ import {
   completion,
   type ToolCall
 } from '@qvac/sdk';
-import { z } from "zod";
 import { wdkService } from './services/wdk';
 import * as storage from './services/wdk/storage';
 import { registerAgentsIpcHandlers, initAgents } from './services/agents';
@@ -18,35 +17,9 @@ import { registerSessionsIpcHandlers } from './services/sessions';
 import { registerTokensHandlers } from './services/tokens';
 import { registerBalancesHandlers } from './services/balances';
 import { registerPricingHandlers } from './services/pricing';
+import { getEnabledTools, executeTool, getToolSchema, registerToolsIpcHandlers } from './services/tools';
 
 app.commandLine.appendSwitch('no-sandbox');
-
-// Define Zod schemas for tool parameters
-const weatherSchema = z.object({
-  city: z.string().describe("City name"),
-  country: z.string().describe("Country code").optional(),
-});
-const horoscopeSchema = z.object({
-  sign: z.string().describe("An astrological sign like Taurus or Aquarius"),
-});
-// Map tool names to their schemas for runtime validation
-const toolSchemas = {
-  get_weather: weatherSchema,
-  get_horoscope: horoscopeSchema,
-};
-// Simple tool definitions - just name, description, and Zod schema!
-const tools = [
-  {
-    name: "get_weather",
-    description: "Get current weather for a city",
-    parameters: weatherSchema,
-  },
-  {
-    name: "get_horoscope",
-    description: "Get today's horoscope for an astrological sign",
-    parameters: horoscopeSchema,
-  },
-];
 
 let win: BrowserWindow | null = null;
 let modelId: string | null = null;
@@ -325,7 +298,7 @@ function registerQVACIpcHandlers(): void {
         stream: true,
         kvCache: true,
         captureThinking: true,
-        tools
+        tools: getEnabledTools() as any
       });
 
       // Stream completion events
@@ -370,7 +343,7 @@ function registerQVACIpcHandlers(): void {
       // Validate and log tool calls
       for (const call of toolCalls) {
         console.log(`  - ${call.name}(${JSON.stringify(call.arguments)})`);
-        const schema = toolSchemas[call.name as keyof typeof toolSchemas];
+        const schema = getToolSchema(call.name);
         if (schema) {
           const validated = schema.safeParse(call.arguments);
           if (validated.success) {
@@ -383,18 +356,11 @@ function registerQVACIpcHandlers(): void {
 
       // Execute tool calls
       console.log("\n🔧 Executing Tool Calls...");
-      const toolResults = toolCalls.map((call) => {
-        let result = "";
-        if (call.name === "get_weather") {
-          const args = call.arguments as { city: string; country?: string };
-          result = `The weather in ${args.city} is sunny, 22°C with light clouds.`;
-        } else if (call.name === "get_horoscope") {
-          const args = call.arguments as { sign: string };
-          result = `Horoscope for ${args.sign}: Today is a great day for new beginnings and creative endeavors!`;
-        }
+      const toolResults = await Promise.all(toolCalls.map(async (call) => {
+        const result = await executeTool(call.name, call.arguments as Record<string, unknown>);
         console.log(`  ✓ ${call.name}: ${result}`);
         return { toolCallId: call.id, result };
-      });
+      }));
 
       // Add tool results to history
       for (const toolResult of toolResults) {
@@ -492,6 +458,9 @@ app.whenReady().then(async () => {
 
   // Register pricing IPC handlers
   registerPricingHandlers();
+
+  // Register tools IPC handlers
+  registerToolsIpcHandlers();
 
   // Register IPC handlers
   registerWDKIpcHandlers();
