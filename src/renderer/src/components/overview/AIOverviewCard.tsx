@@ -26,7 +26,7 @@ function formatUptime(startTime: Date): string {
 
 export default function AIOverviewCard() {
   const navigate = useNavigate();
-  const { isReady, startTime } = useAI();
+  const { isReady, startTime, modelName } = useAI();
   const { isDark } = useTheme();
   const [uptime, setUptime] = useState('--');
   const [sessionsCount, setSessionsCount] = useState('--');
@@ -67,7 +67,7 @@ export default function AIOverviewCard() {
 
   const items = [
     { label: 'Status', value: isReady ? 'Ready' : 'Loading...' },
-    { label: 'Model', value: isReady ? 'Llama Tool Calling 1B Q4_K' : '--' },
+    { label: 'Model', value: modelName || '--' },
     { label: 'Uptime', value: uptime },
     { label: 'Sessions / Running Jobs', value: `${sessionsCount} / 0` }
   ];
@@ -106,7 +106,7 @@ export default function AIOverviewCard() {
                   ? (isReady ? 'text-green-500' : 'text-gray-400')
                   : (isDark ? 'text-white' : 'text-gray-900')
                 }`}>
-                {item.label === 'Status' && !isReady ? (
+                 {item.label === 'Status' && !isReady ? (
                   <>
                     <Loader2 size={12} className="animate-spin" />
                     Loading...

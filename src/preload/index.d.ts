@@ -11,6 +11,12 @@ interface AccountInfo {
   address: string;
 }
 
+interface ModelInfo {
+  name: string;
+  specs: string;
+  recommended: string;
+}
+
 interface AIStatus {
   isReady: boolean;
   modelId: string | null;
@@ -21,6 +27,7 @@ interface AIResult {
   response?: string;
   error?: string;
   modelId?: string;
+  modelType?: '4B' | '1.7B';
 }
 
 interface EverclawAPI {
@@ -51,6 +58,8 @@ interface EverclawAPI {
   // AI (QVAC) operations
   ai: {
     getStatus: () => Promise<AIStatus>;
+    getModels: () => Promise<Record<'4B' | '1.7B', ModelInfo>>;
+    selectModel: (modelType: '4B' | '1.7B') => Promise<AIResult>;
     loadModel: () => Promise<AIResult>;
     sendPrompt: (message: string, history?: { role: string; content: string }[]) => Promise<AIResult>;
     unloadModel: () => Promise<AIResult>;

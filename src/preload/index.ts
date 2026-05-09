@@ -33,6 +33,8 @@ contextBridge.exposeInMainWorld('everclawAPI', {
   // AI (QVAC) operations
   ai: {
     getStatus: () => ipcRenderer.invoke('ai:getStatus'),
+    getModels: () => ipcRenderer.invoke('ai:getModels'),
+    selectModel: (modelType: '4B' | '1.7B') => ipcRenderer.invoke('ai:selectModel', modelType),
     loadModel: () => ipcRenderer.invoke('ai:loadModel'),
     sendPrompt: (message: string, history?: { role: string; content: string }[]) => ipcRenderer.invoke('ai:sendPrompt', message, history),
     sendPromptStream: (message: string, history?: { role: string; content: string }[]) => ipcRenderer.invoke('ai:sendPromptStream', message, history),

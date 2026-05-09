@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import {
-  // QWEN3_4B_INST_Q4_K_M 
+  QWEN3_4B_INST_Q4_K_M,
   QWEN3_1_7B_INST_Q4,
   loadModel,
   unloadModel,
@@ -52,27 +52,60 @@ function createWindow(): void {
 // QVAC Service - AI Model (Main Process)
 // ============================================
 
-// Load QVAC service
-async function loadQVACService(): Promise<void> {
+// Available models for selection
+export type ModelType = '4B' | '1.7B';
+
+export const MODEL_INFO = {
+  '1.7B': {
+    name: 'Qwen3-1.7B',
+    specs: '8GB+ RAM • ~1.5GB disk',
+    recommended: 'Low-spec'
+  },
+  '4B': {
+    name: 'Qwen3-4B',
+    specs: '16GB+ RAM • ~3-4GB disk',
+    recommended: 'High-spec'
+  }
+} as const;
+
+function getModelSource(modelType: ModelType) {
+  return modelType === '4B' ? QWEN3_4B_INST_Q4_K_M : QWEN3_1_7B_INST_Q4;
+}
+
+function getModelName(modelType: ModelType): string {
+  return MODEL_INFO[modelType].name;
+}
+
+// Load QVAC service with selected model
+async function loadQVACService(modelType: ModelType = '1.7B'): Promise<string | null> {
   try {
+    const modelSource = getModelSource(modelType);
+    const modelDisplayName = getModelName(modelType);
+    
+    logService(`[QVAC] Loading ${modelDisplayName}...`);
+    
     modelId = await loadModel({
-      modelSrc: QWEN3_1_7B_INST_Q4,
+      modelSrc: modelSource,
       modelType: 'llm',
       modelConfig: {
         ctx_size: 8192,
-        tools: true, // Enable tools support
+        tools: true,
       },
       onProgress: (progress) => {
         const progressMsg = typeof progress === 'string' ? progress : JSON.stringify(progress);
-        console.log(progress)
+        console.log(progress);
         logService(`[QVAC] ${progressMsg}`);
       }
     });
+    
     console.log('QVAC model loaded:', modelId);
-    logService(`[QVAC] Model loaded: ${modelId}`);
+    logService(`[QVAC] ${modelDisplayName} loaded successfully`);
+    
+    return modelId;
   } catch (error) {
     console.error('Failed to load QVAC Service:', error);
     logService(`[QVAC] Failed to load: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
   }
 }
 
@@ -245,7 +278,35 @@ function registerQVACIpcHandlers(): void {
     };
   });
 
-  // Load model
+  // Get available models info
+  ipcMain.handle('ai:getModels', async () => {
+    return MODEL_INFO;
+  });
+
+  // Select and load model
+  ipcMain.handle('ai:selectModel', async (_event, modelType: ModelType) => {
+    try {
+      // Unload existing model if any
+      if (modelId) {
+        await unloadModel({ modelId });
+        modelId = null;
+      }
+      
+      // Load the selected model
+      const loadedModelId = await loadQVACService(modelType);
+      
+      if (loadedModelId) {
+        return { success: true, modelId: loadedModelId, modelType };
+      } else {
+        return { success: false, error: 'Failed to load model' };
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load model';
+      return { success: false, error: message };
+    }
+  });
+
+  // Load model (legacy, loads default)
   ipcMain.handle('ai:loadModel', async () => {
     try {
       if (!modelId) {
@@ -468,9 +529,9 @@ app.whenReady().then(async () => {
 
   // Create window
   createWindow();
-
-  // Load QVAC model in background
-  loadQVACService();
+  
+  // Note: Model is not auto-loaded. User will select model via UI.
+  logService('[App] Everclaw ready. Select AI model to begin.');
 });
 
 app.on('window-all-closed', () => {
