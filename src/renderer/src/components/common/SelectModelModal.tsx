@@ -30,7 +30,7 @@ export default function SelectModelModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop - no close on click, user must choose */}
-      <motion.div 
+      <motion.div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -38,10 +38,9 @@ export default function SelectModelModal({
       />
 
       {/* Modal */}
-      <motion.div 
-        className={`relative w-full max-w-md mx-4 rounded-2xl p-6 overflow-hidden ${
-          isDark ? 'border border-white/10' : 'border border-black/5 shadow-xl'
-        }`}
+      <motion.div
+        className={`relative w-full max-w-md mx-4 rounded-2xl p-6 overflow-hidden ${isDark ? 'border border-white/10' : 'border border-black/5 shadow-xl'
+          }`}
         style={{
           background: isDark
             ? 'rgba(26, 29, 46, 0.9)'
@@ -55,28 +54,27 @@ export default function SelectModelModal({
         transition={{ duration: 0.2 }}
       >
         {/* Glass shine effect */}
-        <div className={`absolute inset-0 rounded-2xl ${
-          isDark
-            ? 'bg-gradient-to-br from-white/5 to-transparent'
-            : 'bg-gradient-to-br from-white/80 to-transparent'
-        }`} />
+        <div className={`absolute inset-0 rounded-2xl ${isDark
+          ? 'bg-gradient-to-br from-white/5 to-transparent'
+          : 'bg-gradient-to-br from-white/80 to-transparent'
+          }`} />
 
         {/* Top highlight */}
-        <div className={`absolute top-0 left-0 w-full h-px ${
-          isDark
-            ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent'
-            : 'bg-gradient-to-r from-transparent via-black/10 to-transparent'
-        }`} />
+        <div className={`absolute top-0 left-0 w-full h-px ${isDark
+          ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent'
+          : 'bg-gradient-to-r from-transparent via-black/10 to-transparent'
+          }`} />
 
         <div className="relative z-10">
           {/* Header */}
-          <div className="flex items-center gap-3 mb-6"> 
+          <div className="flex items-center gap-3 mb-6">
             <div>
               <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Choose Your Local AI Engine
+                Welcome
               </h2>
               <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                Different models are available depending on your PC’s performance
+                {/* Choose based on your computer’s available memory and speed */}
+                Choose a model to get started 
               </p>
             </div>
           </div>
@@ -92,11 +90,10 @@ export default function SelectModelModal({
                   key={modelType}
                   onClick={() => onSelect(modelType)}
                   disabled={isLoading}
-                  className={`w-full relative overflow-hidden rounded-xl p-4 text-left transition-all ${
-                    isDark
-                      ? 'border border-white/10 hover:border-accent-primary/50'
-                      : 'border border-black/5 hover:border-accent-primary/50 shadow-sm'
-                  } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`w-full relative overflow-hidden rounded-xl p-4 text-left transition-all ${isDark
+                    ? 'border border-white/10 hover:border-accent-primary/50'
+                    : 'border border-black/5 hover:border-accent-primary/50 shadow-sm'
+                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   style={{
                     background: isDark
                       ? 'rgba(26, 29, 46, 0.6)'
@@ -110,18 +107,16 @@ export default function SelectModelModal({
                   whileTap={{ scale: 0.98 }}
                 >
                   {/* Glass shine */}
-                  <div className={`absolute inset-0 rounded-xl ${
-                    isDark
-                      ? 'bg-gradient-to-br from-white/3 to-transparent'
-                      : 'bg-gradient-to-br from-white/80 to-transparent'
-                  }`} />
-                  
+                  <div className={`absolute inset-0 rounded-xl ${isDark
+                    ? 'bg-gradient-to-br from-white/3 to-transparent'
+                    : 'bg-gradient-to-br from-white/80 to-transparent'
+                    }`} />
+
                   {/* Top highlight */}
-                  <div className={`absolute top-0 left-0 w-full h-px ${
-                    isDark
-                      ? 'bg-gradient-to-r from-transparent via-white/10 to-transparent'
-                      : 'bg-gradient-to-r from-transparent via-black/5 to-transparent'
-                  }`} />
+                  <div className={`absolute top-0 left-0 w-full h-px ${isDark
+                    ? 'bg-gradient-to-r from-transparent via-white/10 to-transparent'
+                    : 'bg-gradient-to-r from-transparent via-black/5 to-transparent'
+                    }`} />
 
                   <div className="flex items-start justify-between relative z-10">
                     <div>
@@ -129,21 +124,25 @@ export default function SelectModelModal({
                         {model.name}
                       </h3>
                       <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {is4B 
-                          ? '16GB+ RAM • ~3-4GB disk'
+                        {is4B
+                          ? '16GB+ RAM • ~3-4GB disk • GPU'
                           : '8GB+ RAM • ~1.5GB disk'}
                       </p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      isDark ? 'bg-white/10 text-gray-300' : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {is4B ? 'High Performance' : 'Recommended'}
+                    <span className={`text-xs px-2 py-1 rounded-full ${isDark ? 'bg-white/10 text-gray-300' : 'bg-gray-200 text-gray-600'
+                      }`}>
+                      {is4B ? 'High-spec' : 'Starter'}
                     </span>
                   </div>
                 </motion.button>
               );
             })}
           </div>
+
+          {/* Download info message */}
+          <p className="mt-4 text-center text-xs text-green-500">
+            Initial download required. Subsequent uses will load from local cache.
+          </p>
         </div>
       </motion.div>
     </div>

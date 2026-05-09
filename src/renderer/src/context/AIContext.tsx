@@ -7,10 +7,21 @@ interface Message {
   timestamp: Date;
 }
 
+interface ModelInfo {
+  name: string;
+  specs: string;
+  recommended: string;
+}
+
 interface AIContextType {
   isLoading: boolean;
   isReady: boolean;
   error: string | null;
+  modelName: string | null;
+  models: {
+    '4B': ModelInfo;
+    '1.7B': ModelInfo;
+  } | null;
   sendMessage: (message: string, history?: Message[]) => Promise<string>;
   sendMessageStream: (
     message: string, 
@@ -18,6 +29,8 @@ interface AIContextType {
     onToken: (token: string) => void,
     onThinkingToken?: (token: string) => void
   ) => Promise<string>;
+  selectModel: (modelType: '4B' | '1.7B') => Promise<boolean>;
+  getModels: () => Promise<void>;
   startTime: Date | null;
 }
 
@@ -31,7 +44,53 @@ export function AIProvider({ children }: AIProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelName, setModelName] = useState<string | null>(null);
+  const [models, setModels] = useState<{
+    '4B': ModelInfo;
+    '1.7B': ModelInfo;
+  } | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
+  
+  // Get available models
+  const getModels = async () => {
+    try {
+      const availableModels = await (window as any).everclawAPI.ai.getModels();
+      setModels(availableModels);
+    } catch (err) {
+      console.error('Failed to get models:', err);
+    }
+  };
+  
+  // Select and load model
+  const selectModel = async (modelType: '4B' | '1.7B'): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const result = await (window as any).everclawAPI.ai.selectModel(modelType);
+      
+      if (result.success) {
+        setIsReady(true);
+        setModelName(models?.[modelType]?.name || modelType);
+        setStartTime(new Date());
+        return true;
+      } else {
+        setError(result.error || 'Failed to load model');
+        return false;
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load model';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Initialize models on mount
+  useEffect(() => {
+    getModels();
+  }, []);
 
   // Check AI status on mount
   useEffect(() => {
@@ -158,7 +217,18 @@ export function AIProvider({ children }: AIProviderProps) {
   }, []);
 
   return (
-    <AIContext.Provider value={{ isLoading, isReady, error, sendMessage, sendMessageStream, startTime }}>
+    <AIContext.Provider value={{ 
+      isLoading, 
+      isReady, 
+      error, 
+      modelName,
+      models,
+      sendMessage, 
+      sendMessageStream, 
+      selectModel,
+      getModels,
+      startTime 
+    }}>
       {children}
     </AIContext.Provider>
   );

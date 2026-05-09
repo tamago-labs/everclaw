@@ -103,6 +103,7 @@ contextBridge.exposeInMainWorld('everclawAPI', {
   // Tools operations
   tools: {
     list: () => ipcRenderer.invoke('tools:list'),
+    getInfo: () => ipcRenderer.invoke('tools:getInfo'),
     toggle: (toolName: string, enabled: boolean) => ipcRenderer.invoke('tools:toggle', toolName, enabled),
   },
 });

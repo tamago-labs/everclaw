@@ -13,6 +13,7 @@ interface ChatContainerProps {
   input: string;
   isGenerating: boolean;
   streamingThinking?: string;
+  enabledToolsCount?: number;
   onInputChange: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -22,6 +23,7 @@ export default function ChatContainer({
   input,
   isGenerating,
   streamingThinking = '',
+  enabledToolsCount = 0,
   onInputChange,
   onSubmit
 }: ChatContainerProps) {
@@ -146,6 +148,25 @@ export default function ChatContainer({
         {/* Input Area */}
         <div className={`p-4 border-t ${isDark ? 'border-white/10' : 'border-black/5'}`}>
           <form onSubmit={onSubmit} className="flex gap-0">
+       
+            <div 
+              className={`px-3 py-3 rounded-l-xl border-r flex items-center gap-2 ${
+                isDark 
+                  ? 'bg-white/5 border-white/10' 
+                  : 'bg-gray-100 border-black/5'
+              }`}
+              title={enabledToolsCount > 0 ? `${enabledToolsCount} tools enabled` : 'No tools enabled'}
+            >
+              <div className={`w-2 h-2 rounded-full ${
+                enabledToolsCount > 0 ? 'bg-green-500' : 'bg-gray-500'
+              }`} />
+              <span className={`text-xs font-medium ${
+                isDark ? 'text-white/70' : 'text-gray-600'
+              }`}>
+                {enabledToolsCount > 0 ? `${enabledToolsCount} Tools Enabled` : 'No Tools Enabled'}
+              </span>
+            </div>
+            
             <input
               ref={inputRef}
               type="text"

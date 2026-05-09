@@ -26,6 +26,22 @@ export default function ChatPage() {
   // Read agent/session from URL params or use defaults
   const [selectedAgent, setSelectedAgent] = useState(() => searchParams.get('agent') || 'main');
   const [selectedSession, setSelectedSession] = useState(() => searchParams.get('session') || 'main');
+  const [enabledToolsCount, setEnabledToolsCount] = useState(0);
+  
+  // Fetch enabled tools count
+  useEffect(() => {
+    async function fetchEnabledTools() {
+      try {
+        const tools = await (window as any).everclawAPI.tools.list();
+        const count = tools.filter((t: { name: string; enabled: boolean }) => t.enabled).length;
+        setEnabledToolsCount(count);
+      } catch (error) {
+        console.error('Failed to fetch tools:', error);
+      }
+    }
+    
+    fetchEnabledTools();
+  }, []);
   
   // Use ref to always have access to latest messages state (avoids stale closure)
   const messagesRef = useRef(messages);
@@ -188,6 +204,7 @@ export default function ChatPage() {
             input={input}
             isGenerating={isGenerating}
             streamingThinking={streamingThinking}
+            enabledToolsCount={enabledToolsCount}
             onInputChange={setInput}
             onSubmit={handleSubmit}
           />
