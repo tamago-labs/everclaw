@@ -8,6 +8,9 @@ const TOOLS_PREFS_FILE = 'tools_preferences.json';
 const defaultToolsPreferences: Record<string, boolean> = {
   get_weather: false,
   get_horoscope: false,
+  get_address: false,
+  get_balance: false,
+  get_price: false
 };
 
 export interface ToolsPreferences {

@@ -2,6 +2,9 @@ import { ipcMain } from 'electron';
 import { z } from 'zod';
 import { weatherTool } from './weather';
 import { horoscopeTool } from './horoscope';
+import { getAddressTool } from './get_address';
+import { getBalanceTool } from './get_balance';
+import { getPriceTool } from './get_price';
 import { getToolsPreferences, saveToolsPreferences, isToolEnabled, ensureToolsConfigExists } from './storage';
 
 // Tool interface - matches QVAC tool format for tools parameter
@@ -37,6 +40,9 @@ export interface ToolInfo {
 const toolDefinitions: ToolDefinition[] = [
   weatherTool as unknown as ToolDefinition,
   horoscopeTool as unknown as ToolDefinition,
+  getAddressTool as unknown as ToolDefinition,
+  getBalanceTool as unknown as ToolDefinition,
+  getPriceTool as unknown as ToolDefinition,
 ];
 
 // Get all tool definitions
