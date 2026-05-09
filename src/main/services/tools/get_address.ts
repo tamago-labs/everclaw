@@ -18,7 +18,7 @@ export const getAddressMetadata = {
 export const getAddressTool = {
   type: 'function' as const,
   name: 'get_address',
-  description: "Get the user's wallet address on blockchain networks",
+  description: "Get the user's wallet address on blockchain networks. Supported chains: ethereum, polygon, arbitrum, solana, bitcoin (optional, returns all if not specified)",
   parameters: getAddressSchema,
   metadata: getAddressMetadata,
   execute: async ({ chain }: { chain?: string }) => {

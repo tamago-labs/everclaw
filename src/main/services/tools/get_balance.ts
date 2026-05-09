@@ -18,7 +18,7 @@ export const getBalanceMetadata = {
 export const getBalanceTool = {
   type: 'function' as const,
   name: 'get_balance',
-  description: "Get the user's wallet balance on a blockchain chain",
+  description: "Get the user's wallet balance on a blockchain chain. Supported chains: ethereum, polygon, arbitrum, solana, bitcoin",
   parameters: getBalanceSchema,
   metadata: getBalanceMetadata,
   execute: async ({ chain }: { chain: string }) => {

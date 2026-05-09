@@ -18,7 +18,7 @@ export const getPriceMetadata = {
 export const getPriceTool = {
   type: 'function' as const,
   name: 'get_price',
-  description: "Get the current USD price for a cryptocurrency token",
+  description: "Get the current USD price for a cryptocurrency token. Example symbols: BTC, ETH, SOL, MATIC, SHIB",
   parameters: getPriceSchema,
   metadata: getPriceMetadata,
   execute: async ({ symbol }: { symbol: string }) => {
