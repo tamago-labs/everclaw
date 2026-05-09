@@ -12,7 +12,12 @@ interface AIContextType {
   isReady: boolean;
   error: string | null;
   sendMessage: (message: string, history?: Message[]) => Promise<string>;
-  sendMessageStream: (message: string, history: Message[], onToken: (token: string) => void) => Promise<string>;
+  sendMessageStream: (
+    message: string, 
+    history: Message[], 
+    onToken: (token: string) => void,
+    onThinkingToken?: (token: string) => void
+  ) => Promise<string>;
   startTime: Date | null;
 }
 
@@ -86,21 +91,35 @@ export function AIProvider({ children }: AIProviderProps) {
   const sendMessageStream = useCallback(async (
     message: string, 
     history: Message[], 
-    onToken: (token: string) => void
+    onToken: (token: string) => void,
+    onThinkingToken?: (token: string) => void
   ): Promise<string> => {
     return new Promise(async (resolve, reject) => {
       let isStreamComplete = false;
       
-      // Create a unique listener for this stream
+      // Create a unique listener for content tokens
       const handleToken = (token: string) => {
         if (isStreamComplete) return; // Ignore tokens after completion
         
         if (token === '') {
           isStreamComplete = true;
-          // Remove listener after completion
+          // Remove listeners after completion
           (window as any).everclawAPI.ai.removeStreamTokenListener?.(handleToken);
+          (window as any).everclawAPI.ai.removeStreamThinkingListener?.(handleThinking);
         } else {
           onToken(token);
+        }
+      };
+      
+      // Create a unique listener for thinking tokens
+      const handleThinking = (token: string) => {
+        if (isStreamComplete) return;
+        
+        if (token === '') {
+          // Thinking complete
+          (window as any).everclawAPI.ai.removeStreamThinkingListener?.(handleThinking);
+        } else if (onThinkingToken) {
+          onThinkingToken(token);
         }
       };
       
@@ -111,14 +130,16 @@ export function AIProvider({ children }: AIProviderProps) {
           content: msg.content
         }));
 
-        // Register listener
+        // Register listeners
         (window as any).everclawAPI.ai.onStreamToken(handleToken);
+        (window as any).everclawAPI.ai.onStreamThinking(handleThinking);
 
         const result = await (window as any).everclawAPI.ai.sendPromptStream(message, conversationHistory);
         
         // In case of immediate response (no streaming), cleanup
         isStreamComplete = true;
         (window as any).everclawAPI.ai.removeStreamTokenListener?.(handleToken);
+        (window as any).everclawAPI.ai.removeStreamThinkingListener?.(handleThinking);
         
         if (result.success && result.response) {
           resolve(result.response);
@@ -128,6 +149,7 @@ export function AIProvider({ children }: AIProviderProps) {
       } catch (err) {
         isStreamComplete = true;
         (window as any).everclawAPI.ai.removeStreamTokenListener?.(handleToken);
+        (window as any).everclawAPI.ai.removeStreamThinkingListener?.(handleThinking);
         const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
         setError(errorMessage);
         reject(err);

@@ -2,11 +2,14 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import {
-  LLAMA_TOOL_CALLING_1B_INST_Q4_K,
+  // QWEN3_4B_INST_Q4_K_M 
+  QWEN3_1_7B_INST_Q4,
   loadModel,
   unloadModel,
-  completion
+  completion,
+  type ToolCall
 } from '@qvac/sdk';
+import { z } from "zod";
 import { wdkService } from './services/wdk';
 import * as storage from './services/wdk/storage';
 import { registerAgentsIpcHandlers, initAgents } from './services/agents';
@@ -18,6 +21,32 @@ import { registerPricingHandlers } from './services/pricing';
 
 app.commandLine.appendSwitch('no-sandbox');
 
+// Define Zod schemas for tool parameters
+const weatherSchema = z.object({
+  city: z.string().describe("City name"),
+  country: z.string().describe("Country code").optional(),
+});
+const horoscopeSchema = z.object({
+  sign: z.string().describe("An astrological sign like Taurus or Aquarius"),
+});
+// Map tool names to their schemas for runtime validation
+const toolSchemas = {
+  get_weather: weatherSchema,
+  get_horoscope: horoscopeSchema,
+};
+// Simple tool definitions - just name, description, and Zod schema!
+const tools = [
+  {
+    name: "get_weather",
+    description: "Get current weather for a city",
+    parameters: weatherSchema,
+  },
+  {
+    name: "get_horoscope",
+    description: "Get today's horoscope for an astrological sign",
+    parameters: horoscopeSchema,
+  },
+];
 
 let win: BrowserWindow | null = null;
 let modelId: string | null = null;
@@ -54,7 +83,7 @@ function createWindow(): void {
 async function loadQVACService(): Promise<void> {
   try {
     modelId = await loadModel({
-      modelSrc: LLAMA_TOOL_CALLING_1B_INST_Q4_K,
+      modelSrc: QWEN3_1_7B_INST_Q4,
       modelType: 'llm',
       modelConfig: {
         ctx_size: 8192,
@@ -248,7 +277,7 @@ function registerQVACIpcHandlers(): void {
     try {
       if (!modelId) {
         modelId = await loadModel({
-          modelSrc: LLAMA_TOOL_CALLING_1B_INST_Q4_K,
+          modelSrc: QWEN3_1_7B_INST_Q4,
           modelType: 'llm',
           onProgress: (progress) => console.log(progress)
         });
@@ -266,45 +295,48 @@ function registerQVACIpcHandlers(): void {
       if (!modelId) {
         throw new Error('AI model not loaded');
       }
-      // Build conversation history with the new message
-      const conversationHistory = [
-        ...history,
-        { role: 'user', content: message }
-      ];
-      let fullResponse = '';
-      const result = completion({ modelId, history: conversationHistory, stream: true, kvCache: true, captureThinking: true });
-      for await (const token of result.tokenStream) {
-        fullResponse += token;
-      }
-      return { success: true, response: fullResponse };
+      return await executeCompletionWithTools(null, history, message);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get AI response';
       return { success: false, error: message };
     }
   });
 
-  // Send prompt to AI (streaming)
-  ipcMain.handle('ai:sendPromptStream', async (event, message: string, history: { role: string; content: string }[] = []) => {
-    try {
-      if (!modelId) {
-        throw new Error('AI model not loaded');
-      }
-      // Build conversation history with the new message
-      const conversationHistory = [
-        ...history,
-        { role: 'user', content: message }
-      ];
-      const result = completion({ modelId, history: conversationHistory, stream: true, kvCache: true, captureThinking: true });
-      let fullResponse = '';
+  // Helper function to execute a completion and handle tool calls
+  // Supports both streaming (with event sender) and non-streaming (event = null)
+  async function executeCompletionWithTools(
+    event: Electron.IpcMainInvokeEvent | null,
+    initialHistory: { role: string; content: string }[],
+    initialMessage?: string
+  ): Promise<{ success: boolean; response: string; error?: string }> {
+    // Build conversation history
+    const conversationHistory = initialMessage
+      ? [...initialHistory, { role: 'user', content: initialMessage }]
+      : [...initialHistory];
 
+    let fullResponse = '';
+    const maxToolCalls = 5; // Prevent infinite loops
+    let toolCallCount = 0;
+
+    while (toolCallCount < maxToolCalls) {
+      const result = completion({
+        modelId: modelId!,
+        history: conversationHistory,
+        stream: true,
+        kvCache: true,
+        captureThinking: true,
+        tools
+      });
+
+      // Stream completion events
       for await (const streamEvent of result.events) {
         switch (streamEvent.type) {
           case "contentDelta":
             fullResponse += streamEvent.text;
-            event.sender.send('ai:streamToken', streamEvent.text);
+            if (event) event.sender.send('ai:streamToken', streamEvent.text);
             break;
           case "thinkingDelta":
-            event.sender.send('ai:streamThinking', streamEvent.text);
+            if (event) event.sender.send('ai:streamThinking', streamEvent.text);
             break;
           case "toolCall":
             console.log(`\n→ Tool: ${streamEvent.call.name}(${JSON.stringify(streamEvent.call.arguments)})`);
@@ -325,9 +357,68 @@ function registerQVACIpcHandlers(): void {
         }
       }
 
-      // Send empty token to signal completion
-      event.sender.send('ai:streamToken', '');
-      return { success: true, response: fullResponse };
+      // Get tool calls from result
+      const toolCalls: ToolCall[] = await result.toolCalls;
+
+      if (toolCalls.length === 0) {
+        // No more tool calls, we're done
+        break;
+      }
+
+      toolCallCount++;
+
+      // Validate and log tool calls
+      for (const call of toolCalls) {
+        console.log(`  - ${call.name}(${JSON.stringify(call.arguments)})`);
+        const schema = toolSchemas[call.name as keyof typeof toolSchemas];
+        if (schema) {
+          const validated = schema.safeParse(call.arguments);
+          if (validated.success) {
+            console.log(`    ✓ Arguments validated with Zod`);
+          } else {
+            console.log(`    ✗ Validation failed:`, validated.error);
+          }
+        }
+      }
+
+      // Execute tool calls
+      console.log("\n🔧 Executing Tool Calls...");
+      const toolResults = toolCalls.map((call) => {
+        let result = "";
+        if (call.name === "get_weather") {
+          const args = call.arguments as { city: string; country?: string };
+          result = `The weather in ${args.city} is sunny, 22°C with light clouds.`;
+        } else if (call.name === "get_horoscope") {
+          const args = call.arguments as { sign: string };
+          result = `Horoscope for ${args.sign}: Today is a great day for new beginnings and creative endeavors!`;
+        }
+        console.log(`  ✓ ${call.name}: ${result}`);
+        return { toolCallId: call.id, result };
+      });
+
+      // Add tool results to history
+      for (const toolResult of toolResults) {
+        conversationHistory.push({
+          role: "tool",
+          content: toolResult.result,
+        });
+      }
+
+      console.log(`\n🔄 Tool call ${toolCallCount} completed, continuing with follow-up...\n`);
+    }
+
+    // Send empty token to signal completion (only for streaming)
+    if (event) event.sender.send('ai:streamToken', '');
+    return { success: true, response: fullResponse };
+  }
+
+  // Send prompt to AI (streaming) - Updated handler
+  ipcMain.handle('ai:sendPromptStream', async (event, message: string, history: { role: string; content: string }[] = []) => {
+    try {
+      if (!modelId) {
+        throw new Error('AI model not loaded');
+      }
+      return await executeCompletionWithTools(event, history, message);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get AI response';
       event.sender.send('ai:streamToken', '');

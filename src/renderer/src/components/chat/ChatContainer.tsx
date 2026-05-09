@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Send, Bot, User, ChevronDown, ChevronRight } from 'lucide-react';
+import { Send, Bot, User } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface Message {
@@ -184,37 +184,28 @@ function StreamingThinkingHeader({
   const { isDark } = useTheme();
 
   return (
-    <>
-      {/* Header - always visible */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className={`w-full px-3 py-1.5 flex items-center gap-2 text-left transition-colors ${
-          isDark 
-            ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400' 
-            : 'bg-amber-100 hover:bg-amber-200 text-amber-700'
-        }`}
-      >
-        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />} 
-        <span className="font-medium text-xs">
-          {isGenerating ? 'Thinking...' : 'Thinking'}
+    <div 
+      className={`rounded-xl p-2 cursor-pointer transition-colors ${
+        isDark ? 'bg-amber-500/5 hover:bg-amber-500/10' : 'bg-amber-50 hover:bg-amber-100'
+      } ${!isGenerating ? 'group' : ''}`}
+      onClick={() => !isGenerating && setIsExpanded(!isExpanded)}
+    >
+      {isExpanded ? (
+        <p className={`text-xs italic whitespace-pre-wrap break-words ${
+          isDark ? 'text-amber-300/80' : 'text-amber-700'
+        }`}>
+          {content}
+        </p>
+      ) : (
+        <span className={`text-xs ${isDark ? 'text-amber-500/50' : 'text-amber-600/50'}`}>
+          click to show
         </span>
-        {!isGenerating && content && (
-          <span className={`text-xs ml-auto ${isDark ? 'text-amber-500/60' : 'text-amber-600/60'}`}>
-            (click to {isExpanded ? 'collapse' : 'expand'})
-          </span>
-        )}
-      </button>
-      
-      {/* Content */}
-      {isExpanded && (
-        <div className={`p-2 ${isDark ? 'bg-amber-500/5' : 'bg-amber-50'}`}>
-          <p className={`text-xs italic whitespace-pre-wrap break-words ${
-            isDark ? 'text-amber-300/80' : 'text-amber-700'
-          }`}>
-            {content || (isGenerating && <span className="opacity-50">...</span>)}
-          </p>
-        </div>
       )}
-    </>
+      {!isGenerating && content && (
+        <span className={`text-xs mt-1 block ${isDark ? 'text-amber-500/50' : 'text-amber-600/50'}`}>
+          {isExpanded ? 'click to hide' : ''}
+        </span>
+      )}
+    </div>
   );
 }
