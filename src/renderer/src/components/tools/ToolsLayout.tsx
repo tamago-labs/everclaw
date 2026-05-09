@@ -16,6 +16,7 @@ interface ToolInfo {
   uiDescription: string;
   tags: string[];
   requiredTools: string[];
+  packages: string[];
   parameters: Record<string, ToolParameter>;
 }
 
@@ -213,7 +214,7 @@ export default function ToolsLayout({ toolsInfo, toolsStatus, onToggle }: ToolsL
               )}
 
               {/* Parameters */}
-              <div>
+              <div className="mb-6">
                 <h3 className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   Parameters
                 </h3>
@@ -246,6 +247,29 @@ export default function ToolsLayout({ toolsInfo, toolsStatus, onToggle }: ToolsL
                   ))}
                 </div>
               </div>
+
+              {/* Dependencies */}
+              {selectedToolInfo.packages.length > 0 && (
+                <div>
+                  <h3 className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Dependencies
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedToolInfo.packages.map((pkg) => (
+                      <span
+                        key={pkg}
+                        className={`text-xs px-2 py-1 rounded-full font-mono ${
+                          isDark
+                            ? 'bg-accent-primary/20 text-accent-primary'
+                            : 'bg-accent-primary/10 text-accent-primary'
+                        }`}
+                      >
+                        {pkg}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className={`h-full flex items-center justify-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>

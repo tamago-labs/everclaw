@@ -146,3 +146,8 @@ export function listTokens(): TokenConfig[] {
   
   return allTokens;
 }
+
+// Get token info by symbol and chain
+export function getTokenInfo(chain: string, symbol: string): TokenConfig | undefined {
+  return listTokens().find(t => t.chain === chain && t.symbol === symbol.toUpperCase());
+}

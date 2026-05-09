@@ -404,22 +404,27 @@ function registerQVACIpcHandlers(): void {
       // Validate and log tool calls
       for (const call of toolCalls) {
         console.log(`  - ${call.name}(${JSON.stringify(call.arguments)})`);
+        logService(`[Tool] ${call.name}(${JSON.stringify(call.arguments)})`);
         const schema = getToolSchema(call.name);
         if (schema) {
           const validated = schema.safeParse(call.arguments);
           if (validated.success) {
             console.log(`    ✓ Arguments validated with Zod`);
+            logService(`[Tool] ${call.name}: Arguments validated`);
           } else {
             console.log(`    ✗ Validation failed:`, validated.error);
+            logService(`[Tool] ${call.name}: Validation failed`);
           }
         }
       }
 
       // Execute tool calls
       console.log("\n🔧 Executing Tool Calls...");
+      logService(`[Tool] Executing ${toolCalls.length} tool call(s)...`);
       const toolResults = await Promise.all(toolCalls.map(async (call) => {
         const result = await executeTool(call.name, call.arguments as Record<string, unknown>);
         console.log(`  ✓ ${call.name}: ${result}`);
+        logService(`[Tool] ${call.name}: ${result}`);
         return { toolCallId: call.id, result };
       }));
 
