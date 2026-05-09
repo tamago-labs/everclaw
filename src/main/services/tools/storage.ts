@@ -6,9 +6,9 @@ const TOOLS_PREFS_FILE = 'tools_preferences.json';
 
 // Default tools - all disabled by default
 const defaultToolsPreferences: Record<string, boolean> = {
-  get_address: false,
-  get_balance: false,
-  get_price: false,
+  get_address: true,
+  get_balance: true,
+  get_price: true,
   approve: false,
   transfer: false,
   send_native: false

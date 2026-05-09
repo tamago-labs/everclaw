@@ -35,6 +35,8 @@ export function registerAgentsIpcHandlers(): void {
       }
       
       const result = storage.createAgentFolder(slug);
+      // Initialize workspace files
+      storage.initWorkspaceFiles(slug);
       return { slug, ...result };
     } catch (error) {
       console.error('Failed to create agent:', error);
@@ -83,9 +85,49 @@ export function registerAgentsIpcHandlers(): void {
   ipcMain.handle('agents:init', async () => {
     try {
       storage.ensureMainAgent();
+      // Also init workspace files for main agent
+      storage.initWorkspaceFiles('main');
       return { success: true };
     } catch (error) {
       console.error('Failed to init agents:', error);
+      throw error;
+    }
+  });
+
+  // Get workspace files list
+  ipcMain.handle('agents:workspace:files', async (_event, slug: string) => {
+    try {
+      return storage.getWorkspaceFiles(slug);
+    } catch (error) {
+      console.error('Failed to get workspace files:', error);
+      throw error;
+    }
+  });
+
+  // Read workspace file
+  ipcMain.handle('agents:workspace:read', async (_event, slug: string, filename: string) => {
+    try {
+      const content = storage.readWorkspaceFile(slug, filename);
+      if (content === null) {
+        throw new Error('File not found');
+      }
+      return { filename, content };
+    } catch (error) {
+      console.error('Failed to read workspace file:', error);
+      throw error;
+    }
+  });
+
+  // Write workspace file
+  ipcMain.handle('agents:workspace:write', async (_event, slug: string, filename: string, content: string) => {
+    try {
+      const success = storage.writeWorkspaceFile(slug, filename, content);
+      if (!success) {
+        throw new Error('Failed to write file');
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to write workspace file:', error);
       throw error;
     }
   });
@@ -96,4 +138,10 @@ export function registerAgentsIpcHandlers(): void {
 // Auto-initialize agents on module load
 export function initAgents(): void {
   storage.ensureMainAgent();
+  
+  // Init workspace files for all existing agents
+  const agents = storage.getAgentsList();
+  for (const slug of agents) {
+    storage.initWorkspaceFiles(slug);
+  }
 }

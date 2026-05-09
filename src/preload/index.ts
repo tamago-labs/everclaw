@@ -36,8 +36,8 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     getModels: () => ipcRenderer.invoke('ai:getModels'),
     selectModel: (modelType: '4B' | '1.7B') => ipcRenderer.invoke('ai:selectModel', modelType),
     loadModel: () => ipcRenderer.invoke('ai:loadModel'),
-    sendPrompt: (message: string, history?: { role: string; content: string }[]) => ipcRenderer.invoke('ai:sendPrompt', message, history),
-    sendPromptStream: (message: string, history?: { role: string; content: string }[]) => ipcRenderer.invoke('ai:sendPromptStream', message, history),
+    sendPrompt: (message: string, history?: { role: string; content: string }[], agentSlug?: string) => ipcRenderer.invoke('ai:sendPrompt', message, history, agentSlug),
+    sendPromptStream: (message: string, history?: { role: string; content: string }[], agentSlug?: string) => ipcRenderer.invoke('ai:sendPromptStream', message, history, agentSlug),
     onStreamToken: (callback: (token: string) => void) => {
       ipcRenderer.on('ai:streamToken', (_event, token) => callback(token));
     },
@@ -60,6 +60,11 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     delete: (slug: string) => ipcRenderer.invoke('agents:delete', slug),
     get: (slug: string) => ipcRenderer.invoke('agents:get', slug),
     init: () => ipcRenderer.invoke('agents:init'),
+    workspace: {
+      files: (slug: string) => ipcRenderer.invoke('agents:workspace:files', slug),
+      read: (slug: string, filename: string) => ipcRenderer.invoke('agents:workspace:read', slug, filename),
+      write: (slug: string, filename: string, content: string) => ipcRenderer.invoke('agents:workspace:write', slug, filename, content),
+    },
   },
 
   // Logs operations

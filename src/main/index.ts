@@ -18,6 +18,7 @@ import { registerTokensHandlers } from './services/tokens';
 import { registerBalancesHandlers } from './services/balances';
 import { registerPricingHandlers } from './services/pricing';
 import { getEnabledTools, executeTool, getToolSchema, registerToolsIpcHandlers } from './services/tools';
+import { compileSystemPrompt } from './services/agents/promptBuilder';
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -324,12 +325,20 @@ function registerQVACIpcHandlers(): void {
   });
 
   // Send prompt to AI (non-streaming)
-  ipcMain.handle('ai:sendPrompt', async (_event, message: string, history: { role: string; content: string }[] = []) => {
+  ipcMain.handle('ai:sendPrompt', async (_event, message: string, history: { role: string; content: string }[] = [], agentSlug?: string) => {
     try {
       if (!modelId) {
         throw new Error('AI model not loaded');
       }
-      return await executeCompletionWithTools(null, history, message);
+      
+      // Compile system prompt if agentSlug provided
+      let finalHistory = history;
+      if (agentSlug) {
+        const systemPrompt = await compileSystemPrompt(agentSlug);
+        finalHistory = [{ role: 'system', content: systemPrompt }, ...history];
+      }
+      
+      return await executeCompletionWithTools(null, finalHistory, message);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get AI response';
       return { success: false, error: message };
@@ -445,12 +454,20 @@ function registerQVACIpcHandlers(): void {
   }
 
   // Send prompt to AI (streaming) - Updated handler
-  ipcMain.handle('ai:sendPromptStream', async (event, message: string, history: { role: string; content: string }[] = []) => {
+  ipcMain.handle('ai:sendPromptStream', async (event, message: string, history: { role: string; content: string }[] = [], agentSlug?: string) => {
     try {
       if (!modelId) {
         throw new Error('AI model not loaded');
       }
-      return await executeCompletionWithTools(event, history, message);
+      
+      // Compile system prompt if agentSlug provided
+      let finalHistory = history;
+      if (agentSlug) {
+        const systemPrompt = await compileSystemPrompt(agentSlug);
+        finalHistory = [{ role: 'system', content: systemPrompt }, ...history];
+      }
+      
+      return await executeCompletionWithTools(event, finalHistory, message);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get AI response';
       event.sender.send('ai:streamToken', '');
