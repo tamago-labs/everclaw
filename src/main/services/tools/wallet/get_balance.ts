@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getAllBalances } from '../balances/storage';
+import { getAllBalances } from '../../balances/storage';
 
 export const getBalanceSchema = z.object({
   chain: z.enum(['ethereum', 'polygon', 'arbitrum', 'solana', 'bitcoin']).describe('Blockchain chain name'),
@@ -10,6 +10,7 @@ export const getBalanceMetadata = {
   uiDescription: 'Get native and token balances for a specific blockchain chain. Returns the native token balance (ETH, POL, SOL, BTC) plus any configured token balances with their USD values.',
   tags: ['wallet', 'ethereum', 'polygon', 'arbitrum', 'solana', 'bitcoin'],
   requiredTools: [] as string[],
+  packages: ['@tetherto/wdk-wallet-evm', '@tetherto/wdk-wallet-solana', '@tetherto/wdk-wallet-btc'],
   parameters: {
     chain: { type: 'string', description: 'Chain name (required): ethereum, polygon, arbitrum, solana, bitcoin', required: true },
   },

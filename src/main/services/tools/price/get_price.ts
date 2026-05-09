@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getLastPrice } from '../pricing';
+import { getLastPrice } from '../../pricing';
 
 export const getPriceSchema = z.object({
   symbol: z.string().describe('Token symbol like BTC, ETH, SOL'),
@@ -10,6 +10,7 @@ export const getPriceMetadata = {
   uiDescription: 'Get the current USD price for a cryptocurrency token using Bitfinex Public API. Supports major tokens like BTC, ETH, SOL, and more. Returns the price in USD.',
   tags: ['price', 'bitfinex'],
   requiredTools: [] as string[],
+  packages: ['@tetherto/wdk-pricing-bitfinex-http'],
   parameters: {
     symbol: { type: 'string', description: 'Token symbol (required): BTC, ETH, SOL, etc.', required: true },
   },

@@ -1,8 +1,7 @@
 import { ipcMain } from 'electron';
 import { z } from 'zod';
-import { getAddressTool } from './get_address';
-import { getBalanceTool } from './get_balance';
-import { getPriceTool } from './get_price';
+import { getAddressTool, getBalanceTool, approveTool, transferTool, sendNativeTool } from './wallet';
+import { getPriceTool } from './price';
 import { getToolsPreferences, saveToolsPreferences, isToolEnabled, ensureToolsConfigExists } from './storage';
 
 // Tool interface - matches QVAC tool format for tools parameter
@@ -25,6 +24,7 @@ export interface ToolInfo {
   uiDescription: string;       // Long description for UI display
   tags: string[];               // Tags for organization (shown as badges)
   requiredTools: string[];     // Dependencies (other tools that must be enabled)
+  packages: string[];          // NPM packages this tool depends on
   parameters: {
     [key: string]: {
       type: string;
@@ -39,6 +39,9 @@ const toolDefinitions: ToolDefinition[] = [
   getAddressTool as unknown as ToolDefinition,
   getBalanceTool as unknown as ToolDefinition,
   getPriceTool as unknown as ToolDefinition,
+  approveTool as unknown as ToolDefinition,
+  transferTool as unknown as ToolDefinition,
+  sendNativeTool as unknown as ToolDefinition,
 ];
 
 // Get all tool definitions
@@ -57,6 +60,7 @@ interface ToolDefinitionWithMetadata extends ToolDefinition {
     uiDescription: string;
     tags: string[];
     requiredTools: string[];
+    packages: string[];
     parameters: Record<string, { type: string; description: string; required: boolean }>;
   };
 }
@@ -66,7 +70,7 @@ export function getToolInfo(): ToolInfo[] {
   return toolDefinitions.map(tool => {
     // Get metadata from tool definition
     const toolWithMeta = tool as ToolDefinitionWithMetadata;
-    const meta = toolWithMeta.metadata || { uiDescription: '', tags: [], requiredTools: [], parameters: {} };
+    const meta = toolWithMeta.metadata || { uiDescription: '', tags: [], requiredTools: [], packages: [], parameters: {} };
 
     return {
       name: tool.name,
@@ -74,6 +78,7 @@ export function getToolInfo(): ToolInfo[] {
       uiDescription: meta.uiDescription,
       tags: meta.tags,
       requiredTools: meta.requiredTools,
+      packages: meta.packages,
       parameters: meta.parameters,
     };
   });

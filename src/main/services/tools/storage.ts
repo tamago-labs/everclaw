@@ -5,10 +5,13 @@ import * as fs from 'fs';
 const TOOLS_PREFS_FILE = 'tools_preferences.json';
 
 // Default tools - all disabled by default
-const defaultToolsPreferences: Record<string, boolean> = { 
+const defaultToolsPreferences: Record<string, boolean> = {
   get_address: false,
   get_balance: false,
-  get_price: false
+  get_price: false,
+  approve: false,
+  transfer: false,
+  send_native: false
 };
 
 export interface ToolsPreferences {
