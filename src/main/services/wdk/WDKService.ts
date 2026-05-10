@@ -11,6 +11,15 @@ import WalletManagerBtcModule from '@tetherto/wdk-wallet-btc';
 
 import type { AccountInfo } from './types';
 
+// @ts-ignore - Solana libraries
+import { VersionedTransaction, Transaction } from '@solana/web3.js';
+
+// Solana keypair utilities
+import { deriveSolanaKeypair } from '../solana/keypair';
+
+// Storage for seed phrase
+import * as storage from './storage';
+
 // @ts-ignore - Swap protocol is ESM module
 import SwapProtocolVeloraEvmModule from '@tetherto/wdk-protocol-swap-velora-evm';
 
@@ -318,6 +327,44 @@ export class WDKService {
             tokenOutAmount: result.tokenOutAmount.toString(),
             fee: result.fee.toString()
         };
+    }
+
+
+    /**
+     * Sign a Jupiter swap transaction (base64 Transaction)
+     * Returns the signed transaction for execution via Jupiter API
+     * 
+     * Following Jupiter's official example:
+     * https://docs.jup.ag/api/endpoints/sign-and-send-transaction
+     */
+    async signJupiterTransaction(swapTransactionBase64: string): Promise<{ signedTransaction: string; hash: string }> {
+        // Get seed from storage and derive keypair directly
+        let seed: string;
+        try {
+            seed = storage.decryptStoredSeed();
+        } catch (error) {
+            throw new Error('Failed to decrypt stored seed for signing');
+        }
+        
+        // Derive keypair from seed using our utility
+        const keypair = deriveSolanaKeypair(seed);
+        console.log(`[WDK] Using derived keypair for signing, public key: ${keypair.publicKey.toBase58()}`);
+        
+        // Deserialize the base64 transaction
+        const txBuffer = Buffer.from(swapTransactionBase64, 'base64');
+        
+        // Deserialize as VersionedTransaction (Jupiter returns this format)
+        const transaction = VersionedTransaction.deserialize(txBuffer);
+        console.log('[WDK] Deserialized VersionedTransaction');
+        
+        // Sign the transaction - Jupiter's transaction already has correct blockhash
+        transaction.sign([keypair]);
+        console.log('[WDK] Transaction signed');
+        
+        // Serialize and return
+        const signedTransaction = Buffer.from(transaction.serialize()).toString('base64');
+        
+        return { signedTransaction, hash: '' };
     }
 
     /**

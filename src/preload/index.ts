@@ -123,4 +123,12 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     delete: (agentSlug: string, cronSlug: string) => ipcRenderer.invoke('crons:delete', agentSlug, cronSlug),
     runNow: (agentSlug: string, cronSlug: string) => ipcRenderer.invoke('crons:runNow', agentSlug, cronSlug),
   },
+
+  // Solana swap operations
+  solana: {
+    swap: {
+      quote: (inputMint: string, outputMint: string, amount: string) => ipcRenderer.invoke('solana:swap:quote', inputMint, outputMint, amount),
+      execute: (inputMint: string, outputMint: string, amount: string) => ipcRenderer.invoke('solana:swap:execute', inputMint, outputMint, amount),
+    },
+  },
 });

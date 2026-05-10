@@ -12,7 +12,7 @@ export const evmVeloraQuoteSwapSchema = z.object({
 
 export const evmVeloraQuoteSwapMetadata = {
   uiDescription: 'Get a swap quote from Velora DEX on EVM chains (Ethereum, Polygon, Arbitrum). No transaction is executed - this is a read-only preview.',
-  tags: ['swap', 'defi', 'velora', 'ethereum', 'polygon', 'arbitrum'],
+  tags: ['swap', 'defi', 'ethereum', 'polygon', 'arbitrum'],
   requiredTools: [] as string[],
   packages: ['@tetherto/wdk-protocol-swap-velora-evm', '@tetherto/wdk-wallet-evm'],
   parameters: {

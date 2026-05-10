@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getAddressTool, getBalanceTool, approveTool, transferTool, sendNativeTool } from './wallet';
 import { getPriceTool } from './price';
 import { evmVeloraQuoteSwapTool, evmVeloraExecuteSwapTool } from './swap';
+import { solanaJupiterQuoteSwapTool, solanaJupiterExecuteSwapTool } from '../swap/solana';
 import { getToolsPreferences, saveToolsPreferences, isToolEnabled, ensureToolsConfigExists } from './storage';
 
 // Tool interface - matches QVAC tool format for tools parameter
@@ -45,6 +46,8 @@ const toolDefinitions: ToolDefinition[] = [
   sendNativeTool as unknown as ToolDefinition,
   evmVeloraQuoteSwapTool as unknown as ToolDefinition,
   evmVeloraExecuteSwapTool as unknown as ToolDefinition,
+  solanaJupiterQuoteSwapTool as unknown as ToolDefinition,
+  solanaJupiterExecuteSwapTool as unknown as ToolDefinition,
 ];
 
 // Get all tool definitions

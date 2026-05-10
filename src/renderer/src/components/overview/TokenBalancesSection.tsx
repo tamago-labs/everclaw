@@ -6,6 +6,7 @@ import GlassDropdown from '../common/GlassDropdown';
 import GlassButton from '../common/GlassButton';
 import { useTheme } from '../../context/ThemeContext';
 import { useWallet } from '../../context/WalletContext';
+import JupiterSwapModal from '../swap/JupiterSwapModal';
 
 type Tab = 'balances' | 'transactions';
 
@@ -62,6 +63,8 @@ export default function TokenBalancesSection() {
   const [selectedChain, setSelectedChain] = useState<string>('solana');
   const [balances, setBalances] = useState<AllBalances>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [swapModalOpen, setSwapModalOpen] = useState(false);
+  const [selectedSwapToken, setSelectedSwapToken] = useState<{symbol: string; mint: string; balance: string} | null>(null);
 
   useEffect(() => {
     if (hasWallet) {
@@ -83,6 +86,22 @@ export default function TokenBalancesSection() {
       console.error('Failed to fetch balances:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleOpenSwap = (token: TokenBalance) => {
+    // Only allow swap on Solana for now
+    if (token.chain === 'solana') {
+      // For native tokens (SOL), use SOL mint, otherwise use contractAddress
+      const mint = token.contractAddress === 'native' 
+        ? 'So11111111111111111111111111111111111111112' 
+        : token.contractAddress;
+      setSelectedSwapToken({
+        symbol: token.symbol,
+        mint: mint,
+        balance: token.balanceFormatted,
+      });
+      setSwapModalOpen(true);
     }
   };
 
@@ -244,12 +263,13 @@ export default function TokenBalancesSection() {
               <div className={`rounded-xl overflow-hidden border ${
                 isDark ? 'border-white/5' : 'border-black/5'
               }`}>
-                <div className={`grid grid-cols-[1fr_1fr_1fr] gap-4 px-6 py-3 border-b ${
+                <div className={`grid grid-cols-[1fr_1fr_1fr_auto] gap-4 px-6 py-3 border-b ${
                   isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-gray-50'
                 }`}>
                   <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase">Token</span>
                   <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase">Balance</span>
                   <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase">Value</span>
+                  <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase">Action</span>
                 </div>
 
                 {!hasWallet ? (
@@ -270,7 +290,7 @@ export default function TokenBalancesSection() {
                   chainTokens.map((token, index) => (
                     <div
                       key={`${token.chain}-${token.symbol}-${index}`}
-                      className={`grid grid-cols-[1fr_1fr_1fr] gap-4 px-6 py-4 border-b items-center ${
+                      className={`grid grid-cols-[1fr_1fr_1fr_auto] gap-4 px-6 py-4 border-b items-center ${
                         isDark ? 'border-white/5' : 'border-black/5'
                       } ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}
                     >
@@ -287,6 +307,14 @@ export default function TokenBalancesSection() {
                       </div>
                       <span className="text-sm text-[var(--color-text-muted)]">{token.balanceFormatted}</span>
                       <span className="text-sm text-[var(--color-text-primary)]">{token.value}</span>
+                      {token.chain === 'solana' && (
+                        <button
+                          onClick={() => handleOpenSwap(token)}
+                          className="text-sm text-green-500 hover:text-green-400 font-medium transition-colors"
+                        >
+                          Swap
+                        </button>
+                      )}
                     </div>
                   ))
                 )}
@@ -327,6 +355,13 @@ export default function TokenBalancesSection() {
           )}
         </div>
       </div>
+
+      {/* Jupiter Swap Modal */}
+      <JupiterSwapModal
+        isOpen={swapModalOpen}
+        onClose={() => setSwapModalOpen(false)}
+        inputToken={selectedSwapToken}
+      />
     </motion.div>
   );
 }

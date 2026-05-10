@@ -21,6 +21,7 @@ import { getEnabledTools, executeTool, getToolSchema, registerToolsIpcHandlers }
 import { registerCronsIpcHandlers, cronService } from './services/crons';
 import { compileSystemPrompt } from './services/agents/promptBuilder';
 import { setModelId } from './services/aiService';
+import { registerSolanaSwapIpcHandlers } from './services/swap/solana/ipc';
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -563,6 +564,9 @@ app.whenReady().then(async () => {
   // Register IPC handlers
   registerWDKIpcHandlers();
   registerQVACIpcHandlers();
+
+  // Register Solana swap IPC handlers
+  registerSolanaSwapIpcHandlers();
 
   // Create window
   createWindow();
