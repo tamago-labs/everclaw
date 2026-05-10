@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { getQuote, SOLANA_TOKENS } from './jupiter';
+import { listTokens } from '../../tokens/storage';
 
 export const solanaJupiterQuoteSwapSchema = z.object({
   tokenIn: z.string().describe('Token symbol to sell (e.g., SOL, USDC, USDT)'),
@@ -19,12 +20,26 @@ export const solanaJupiterQuoteSwapMetadata = {
   },
 };
 
-// Token symbol to mint address mapping
-const TOKEN_MINT_MAP: Record<string, string> = {
-  SOL: SOLANA_TOKENS.SOL,
-  USDC: SOLANA_TOKENS.USDC,
-  USDT: SOLANA_TOKENS.USDT,
-};
+// Build token mint map from storage (except SOL which is always native)
+function buildSolanaTokenMintMap(): Record<string, { mint: string; decimals: number }> {
+  const tokens = listTokens();
+  const tokenMap: Record<string, { mint: string; decimals: number }> = {};
+  
+  // SOL is always native
+  tokenMap['SOL'] = { mint: SOLANA_TOKENS.SOL, decimals: 9 };
+  
+  // Add all other Solana tokens from storage
+  for (const token of tokens) {
+    if (token.chain === 'solana' && token.symbol !== 'SOL') {
+      tokenMap[token.symbol] = { 
+        mint: token.contractAddress, 
+        decimals: token.decimals 
+      };
+    }
+  }
+  
+  return tokenMap;
+}
 
 export const solanaJupiterQuoteSwapTool = {
   type: 'function' as const,
@@ -38,36 +53,38 @@ export const solanaJupiterQuoteSwapTool = {
     amount: string;
   }) => {
     try {
-      // Resolve token symbols to mint addresses
-      const inputMint = TOKEN_MINT_MAP[tokenIn.toUpperCase()];
-      const outputMint = TOKEN_MINT_MAP[tokenOut.toUpperCase()];
+      // Build token map from storage
+      const tokenMap = buildSolanaTokenMintMap();
+      const upperTokenIn = tokenIn.toUpperCase();
+      const upperTokenOut = tokenOut.toUpperCase();
       
-      if (!inputMint) {
+      // Resolve token symbols to mint addresses
+      const inputToken = tokenMap[upperTokenIn];
+      const outputToken = tokenMap[upperTokenOut];
+      
+      if (!inputToken) {
         return JSON.stringify({ isError: true, message: `Unknown token: ${tokenIn}` });
       }
-      if (!outputMint) {
+      if (!outputToken) {
         return JSON.stringify({ isError: true, message: `Unknown token: ${tokenOut}` });
       }
       
-      // Get decimals based on token
-      const decimals = inputMint === SOLANA_TOKENS.SOL ? 9 : 6;
-      
-      // Convert amount to base units
-      const baseAmount = (BigInt(Math.floor(parseFloat(amount) * 10 ** decimals))).toString();
+      // Convert amount to base units (using input token decimals)
+      const baseAmount = (BigInt(Math.floor(parseFloat(amount) * 10 ** inputToken.decimals))).toString();
       
       // Get quote from Jupiter
-      const quote = await getQuote(inputMint, outputMint, baseAmount, 50);
+      const quote = await getQuote(inputToken.mint, outputToken.mint, baseAmount, 50);
       
-      // Format output
-      const inputAmount = (BigInt(quote.inAmount) / BigInt(10 ** decimals)).toString();
-      const outputAmount = (BigInt(quote.outAmount) / BigInt(10 ** decimals)).toString();
+      // Format output - use CORRECT decimals for EACH token
+      const formattedInputAmount = (BigInt(quote.inAmount) / BigInt(10 ** inputToken.decimals)).toString();
+      const formattedOutputAmount = (BigInt(quote.outAmount) / BigInt(10 ** outputToken.decimals)).toString();
       
       return JSON.stringify({
         success: true,
         tokenIn,
         tokenOut,
-        inputAmount,
-        outputAmount,
+        inputAmount: formattedInputAmount,
+        outputAmount: formattedOutputAmount,
         priceImpact: quote.priceImpactPct,
       }, null, 2);
     } catch (error) {

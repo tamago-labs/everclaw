@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { executeSwap as jupiterExecuteSwap, getQuote, SOLANA_TOKENS } from './jupiter';
+import { listTokens } from '../../tokens/storage';
 
 export const solanaJupiterExecuteSwapSchema = z.object({
   tokenIn: z.string().describe('Token symbol to sell (e.g., SOL, USDC, USDT)'),
@@ -21,12 +22,26 @@ export const solanaJupiterExecuteSwapMetadata = {
   },
 };
 
-// Token symbol to mint address mapping
-const TOKEN_MINT_MAP: Record<string, string> = {
-  SOL: SOLANA_TOKENS.SOL,
-  USDC: SOLANA_TOKENS.USDC,
-  USDT: SOLANA_TOKENS.USDT,
-};
+// Build token mint map from storage (except SOL which is always native)
+function buildSolanaTokenMintMap(): Record<string, { mint: string; decimals: number }> {
+  const tokens = listTokens();
+  const tokenMap: Record<string, { mint: string; decimals: number }> = {};
+  
+  // SOL is always native
+  tokenMap['SOL'] = { mint: SOLANA_TOKENS.SOL, decimals: 9 };
+  
+  // Add all other Solana tokens from storage
+  for (const token of tokens) {
+    if (token.chain === 'solana' && token.symbol !== 'SOL') {
+      tokenMap[token.symbol] = { 
+        mint: token.contractAddress, 
+        decimals: token.decimals 
+      };
+    }
+  }
+  
+  return tokenMap;
+}
 
 export const solanaJupiterExecuteSwapTool = {
   type: 'function' as const,
@@ -41,47 +56,49 @@ export const solanaJupiterExecuteSwapTool = {
     slippage?: number;
   }) => {
     try {
-      // Resolve token symbols to mint addresses
-      const inputMint = TOKEN_MINT_MAP[tokenIn.toUpperCase()];
-      const outputMint = TOKEN_MINT_MAP[tokenOut.toUpperCase()];
+      // Build token map from storage
+      const tokenMap = buildSolanaTokenMintMap();
+      const upperTokenIn = tokenIn.toUpperCase();
+      const upperTokenOut = tokenOut.toUpperCase();
       
-      if (!inputMint) {
+      // Resolve token symbols to mint addresses
+      const inputToken = tokenMap[upperTokenIn];
+      const outputToken = tokenMap[upperTokenOut];
+      
+      if (!inputToken) {
         return JSON.stringify({ isError: true, message: `Unknown token: ${tokenIn}` });
       }
-      if (!outputMint) {
+      if (!outputToken) {
         return JSON.stringify({ isError: true, message: `Unknown token: ${tokenOut}` });
       }
       
-      // Get decimals based on token
-      const decimals = inputMint === SOLANA_TOKENS.SOL ? 9 : 6;
-      
-      // Convert amount to base units
-      const baseAmount = (BigInt(Math.floor(parseFloat(amount) * 10 ** decimals))).toString();
+      // Convert amount to base units (using input token decimals)
+      const baseAmount = (BigInt(Math.floor(parseFloat(amount) * 10 ** inputToken.decimals))).toString();
       
       // Slippage in basis points
       const slippageBps = Math.floor((slippage ?? 0.5) * 100);
       
       // First get a quote to show expected amounts
-      const quote = await getQuote(inputMint, outputMint, baseAmount, slippageBps);
+      const quote = await getQuote(inputToken.mint, outputToken.mint, baseAmount, slippageBps);
       
       // Execute the swap
-      const result = await jupiterExecuteSwap(inputMint, outputMint, baseAmount, slippageBps);
+      const result = await jupiterExecuteSwap(inputToken.mint, outputToken.mint, baseAmount, slippageBps);
       
       if (!result.success) {
         return JSON.stringify({ isError: true, message: result.error || 'Swap failed' });
       }
       
-      // Format amounts
-      const inputAmount = (BigInt(quote.inAmount) / BigInt(10 ** decimals)).toString();
-      const outputAmount = (BigInt(quote.outAmount) / BigInt(10 ** decimals)).toString();
+      // Format amounts - use CORRECT decimals for EACH token
+      const formattedInputAmount = (BigInt(quote.inAmount) / BigInt(10 ** inputToken.decimals)).toString();
+      const formattedOutputAmount = (BigInt(quote.outAmount) / BigInt(10 ** outputToken.decimals)).toString();
       
       return JSON.stringify({
         success: true,
         transactionHash: result.transactionHash,
         tokenIn,
         tokenOut,
-        inputAmount,
-        outputAmount,
+        inputAmount: formattedInputAmount,
+        outputAmount: formattedOutputAmount,
         fee: result.transactionHash ? '0.000005' : '0', // ~5000 lamports in SOL
       }, null, 2);
     } catch (error) {
