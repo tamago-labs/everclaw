@@ -181,11 +181,12 @@ class CronService {
         response,
       });
       
-      // Save to session messages
+      // Save to session messages with timestamp
       const messages = loadMessages(cron.agentSlug, cron.sessionSlug);
+      const timestamp = now.toISOString();
       messages.push(
         { role: 'user', content: cron.prompt },
-        { role: 'assistant', content: response }
+        { role: 'assistant', content: `[${timestamp}] ${response}` }
       );
       saveMessages(cron.agentSlug, cron.sessionSlug, messages);
       
