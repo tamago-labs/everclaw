@@ -14,6 +14,7 @@ interface ToolInfo {
   uiDescription: string;
   tags: string[];
   requiredTools: string[];
+  packages: string[];
   parameters: Record<string, ToolParameter>;
 }
 

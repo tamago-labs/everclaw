@@ -4,11 +4,3 @@ export { sanctumQuoteSwapTool, sanctumQuoteSwapSchema, sanctumQuoteSwapMetadata 
 export { sanctumExecuteSwapTool, sanctumExecuteSwapSchema, sanctumExecuteSwapMetadata } from './executeSwap';
 export { sanctumGetLSTInfoTool, sanctumGetLSTInfoSchema, sanctumGetLSTInfoMetadata } from './getLSTInfo';
 export { sanctumGetOwnedLSTsTool, sanctumGetOwnedLSTsSchema, sanctumGetOwnedLSTsMetadata } from './getOwnedLSTs';
-
-// All Sanctum tools
-export const SANCTUM_TOOLS = [
-  require('./quoteSwap').sanctumQuoteSwapTool,
-  require('./executeSwap').sanctumExecuteSwapTool,
-  require('./getLSTInfo').sanctumGetLSTInfoTool,
-  require('./getOwnedLSTs').sanctumGetOwnedLSTsTool,
-];

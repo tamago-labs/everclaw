@@ -4,11 +4,3 @@ export { luloQuoteSupplyTool, luloQuoteSupplySchema, luloQuoteSupplyMetadata } f
 export { luloExecuteSupplyTool, luloExecuteSupplySchema, luloExecuteSupplyMetadata } from './supply';
 export { luloQuoteWithdrawTool, luloQuoteWithdrawSchema, luloQuoteWithdrawMetadata } from './withdraw';
 export { luloExecuteWithdrawTool, luloExecuteWithdrawSchema, luloExecuteWithdrawMetadata } from './withdraw';
-
-// All Lulo tools
-export const LULO_TOOLS = [
-  require('./supply').luloQuoteSupplyTool,
-  require('./supply').luloExecuteSupplyTool,
-  require('./withdraw').luloQuoteWithdrawTool,
-  require('./withdraw').luloExecuteWithdrawTool,
-];
