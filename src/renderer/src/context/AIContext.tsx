@@ -22,7 +22,7 @@ interface AIContextType {
     '4B': ModelInfo;
     '1.7B': ModelInfo;
   } | null;
-  sendMessage: (message: string, history?: Message[]) => Promise<string>;
+  // sendMessage: (message: string, history?: Message[]) => Promise<string>;
   sendMessageStream: (
     message: string, 
     history: Message[], 
@@ -127,26 +127,26 @@ export function AIProvider({ children }: AIProviderProps) {
     return () => clearInterval(interval);
   }, [isReady]);
 
-  const sendMessage = async (message: string, history: Message[] = []): Promise<string> => {
-    try {
-      // Convert history to the format expected by backend
-      const conversationHistory = history.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
+  // const sendMessage = async (message: string, history: Message[] = []): Promise<string> => {
+  //   try {
+  //     // Convert history to the format expected by backend
+  //     const conversationHistory = history.map(msg => ({
+  //       role: msg.role,
+  //       content: msg.content
+  //     }));
       
-      const result = await (window as any).everclawAPI.ai.sendPrompt(message, conversationHistory);
-      if (result.success && result.response) {
-        return result.response;
-      } else {
-        throw new Error(result.error || 'Failed to get AI response');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
-      setError(errorMessage);
-      throw err;
-    }
-  };
+  //     const result = await (window as any).everclawAPI.ai.sendPrompt(message, conversationHistory);
+  //     if (result.success && result.response) {
+  //       return result.response;
+  //     } else {
+  //       throw new Error(result.error || 'Failed to get AI response');
+  //     }
+  //   } catch (err) {
+  //     const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+  //     setError(errorMessage);
+  //     throw err;
+  //   }
+  // };
 
   const sendMessageStream = useCallback(async (
     message: string, 
@@ -225,7 +225,7 @@ export function AIProvider({ children }: AIProviderProps) {
       error, 
       modelName,
       models,
-      sendMessage, 
+      // sendMessage, 
       sendMessageStream, 
       selectModel,
       getModels,

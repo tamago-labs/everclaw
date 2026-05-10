@@ -30,6 +30,7 @@ export default function AIOverviewCard() {
   const { isDark } = useTheme();
   const [uptime, setUptime] = useState('--');
   const [sessionsCount, setSessionsCount] = useState('--');
+  const [runningCronsCount, setRunningCronsCount] = useState('0');
 
   useEffect(() => {
     if (startTime) {
@@ -61,6 +62,22 @@ export default function AIOverviewCard() {
     fetchSessionsCount();
   }, []);
 
+  // Fetch running cron jobs count
+  useEffect(() => {
+    async function fetchRunningCrons() {
+      try {
+        const allCrons: any[] = await (window as any).everclawAPI.crons.listAll();
+        const running = allCrons.filter((c: any) => c.enabled).length;
+        setRunningCronsCount(running.toString());
+      } catch (error) {
+        console.error('Failed to fetch running crons:', error);
+        setRunningCronsCount('0');
+      }
+    }
+
+    fetchRunningCrons();
+  }, []);
+
   const handleShowLogs = () => {
     navigate('/settings');
   };
@@ -69,7 +86,7 @@ export default function AIOverviewCard() {
     { label: 'Status', value: isReady ? 'Ready' : 'Loading...' },
     { label: 'Model', value: modelName || '--' },
     { label: 'Uptime', value: uptime },
-    { label: 'Sessions / Running Jobs', value: `${sessionsCount} / 0` }
+    { label: 'Sessions / Running Jobs', value: `${sessionsCount} / ${runningCronsCount}` }
   ];
 
   return (

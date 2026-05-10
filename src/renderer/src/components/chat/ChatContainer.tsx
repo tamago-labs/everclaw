@@ -163,7 +163,7 @@ export default function ChatContainer({
               <span className={`text-xs font-medium ${
                 isDark ? 'text-white/70' : 'text-gray-600'
               }`}>
-                {enabledToolsCount > 0 ? `${enabledToolsCount} Tools Enabled` : 'No Tools Enabled'}
+                {enabledToolsCount > 0 ? `${enabledToolsCount} Tools` : 'No Tools'}
               </span>
             </div>
             

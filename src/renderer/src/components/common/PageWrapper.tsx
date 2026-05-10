@@ -6,9 +6,10 @@ interface PageWrapperProps {
   title: string;
   children: React.ReactNode;
   className?: string;
+  action?: React.ReactNode;
 }
 
-export default function PageWrapper({ title, children, className = '' }: PageWrapperProps) {
+export default function PageWrapper({ title, children, className = '', action }: PageWrapperProps) {
   const { isDark } = useTheme();
   const gradientClass = isDark ? 'text-gradient-white' : 'text-gradient-light';
   const topRef = useRef<HTMLDivElement>(null);
@@ -22,11 +23,12 @@ export default function PageWrapper({ title, children, className = '' }: PageWra
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
+        className="mb-6 flex items-center justify-between"
       >
         <h1 className={`text-2xl font-bold   ${gradientClass}`}>
           {title}
         </h1>
+        {action && <div>{action}</div>}
       </motion.div>
       {children}
     </div>

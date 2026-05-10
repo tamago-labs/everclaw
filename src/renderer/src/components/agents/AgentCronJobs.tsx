@@ -1,13 +1,62 @@
 import { Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 
-export default function AgentCronJobs() {
-  const { isDark } = useTheme();
+interface CronJob {
+  id: string;
+  name: string;
+  sessionSlug: string;
+  prompt: string;
+  schedule: string;
+  enabled: boolean;
+  lastRun: string | null;
+  nextRun: string | null;
+}
 
-  const jobs = [
-    { name: 'Daily Report', schedule: '0 9 * * *', enabled: true, lastRun: '2 hours ago' },
-    { name: 'Weekly Summary', schedule: '0 10 * * 0', enabled: false, lastRun: '3 days ago' },
-  ];
+interface AgentCronJobsProps {
+  agentSlug: string;
+}
+
+function formatTimeAgo(isoString: string | null): string {
+  if (!isoString) return 'Never';
+  const date = new Date(isoString);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function formatNextRun(isoString: string | null): string {
+  if (!isoString) return 'Not scheduled';
+  const date = new Date(isoString);
+  return date.toLocaleString('en-US', {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+}
+
+export default function AgentCronJobs({ agentSlug }: AgentCronJobsProps) {
+  const { isDark } = useTheme();
+  const [jobs, setJobs] = useState<CronJob[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchJobs() {
+      try {
+        const crons: CronJob[] = await (window as any).everclawAPI.crons.list(agentSlug);
+        setJobs(crons);
+      } catch (error) {
+        console.error('Failed to fetch cron jobs:', error);
+        setJobs([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchJobs();
+  }, [agentSlug]);
 
   return (
     <div
@@ -29,19 +78,23 @@ export default function AgentCronJobs() {
       
       <div className="relative z-10">
         <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          Scheduled Tasks
+          Scheduled Tasks ({jobs.length})
         </h3>
 
-        {jobs.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p className={isDark ? 'text-gray-500' : 'text-gray-400'}>Loading...</p>
+          </div>
+        ) : jobs.length === 0 ? (
           <div className="text-center py-8">
             <Clock className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
             <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>No scheduled tasks</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {jobs.map((job, index) => (
+            {jobs.map((job) => (
               <div
-                key={index}
+                key={job.id}
                 className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -54,15 +107,20 @@ export default function AgentCronJobs() {
                     className={job.enabled ? 'text-accent-primary' : isDark ? 'text-gray-500' : 'text-gray-400'} 
                   />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     {job.name}
                   </p>
-                  <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    {job.schedule} • Last run: {job.lastRun}
+                  <p className={`text-xs truncate ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {job.schedule} • Last: {formatTimeAgo(job.lastRun)}
                   </p>
+                  {job.nextRun && (
+                    <p className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
+                      Next: {formatNextRun(job.nextRun)}
+                    </p>
+                  )}
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${
+                <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
                   job.enabled 
                     ? 'bg-green-500/10 text-green-500' 
                     : isDark ? 'bg-white/5 text-gray-500' : 'bg-gray-200 text-gray-400'

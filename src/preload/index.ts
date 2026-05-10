@@ -36,7 +36,7 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     getModels: () => ipcRenderer.invoke('ai:getModels'),
     selectModel: (modelType: '4B' | '1.7B') => ipcRenderer.invoke('ai:selectModel', modelType),
     loadModel: () => ipcRenderer.invoke('ai:loadModel'),
-    sendPrompt: (message: string, history?: { role: string; content: string }[], agentSlug?: string) => ipcRenderer.invoke('ai:sendPrompt', message, history, agentSlug),
+    // sendPrompt: (message: string, history?: { role: string; content: string }[], agentSlug?: string) => ipcRenderer.invoke('ai:sendPrompt', message, history, agentSlug),
     sendPromptStream: (message: string, history?: { role: string; content: string }[], agentSlug?: string) => ipcRenderer.invoke('ai:sendPromptStream', message, history, agentSlug),
     onStreamToken: (callback: (token: string) => void) => {
       ipcRenderer.on('ai:streamToken', (_event, token) => callback(token));
@@ -110,5 +110,17 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     list: () => ipcRenderer.invoke('tools:list'),
     getInfo: () => ipcRenderer.invoke('tools:getInfo'),
     toggle: (toolName: string, enabled: boolean) => ipcRenderer.invoke('tools:toggle', toolName, enabled),
+  },
+
+  // Crons operations
+  crons: {
+    listAll: () => ipcRenderer.invoke('crons:listAll'),
+    list: (agentSlug: string) => ipcRenderer.invoke('crons:list', agentSlug),
+    get: (agentSlug: string, cronSlug: string) => ipcRenderer.invoke('crons:get', agentSlug, cronSlug),
+    create: (agentSlug: string, config: any) => ipcRenderer.invoke('crons:create', agentSlug, config),
+    update: (agentSlug: string, cronSlug: string, updates: any) => ipcRenderer.invoke('crons:update', agentSlug, cronSlug, updates),
+    toggle: (agentSlug: string, cronSlug: string, enabled: boolean) => ipcRenderer.invoke('crons:toggle', agentSlug, cronSlug, enabled),
+    delete: (agentSlug: string, cronSlug: string) => ipcRenderer.invoke('crons:delete', agentSlug, cronSlug),
+    runNow: (agentSlug: string, cronSlug: string) => ipcRenderer.invoke('crons:runNow', agentSlug, cronSlug),
   },
 });

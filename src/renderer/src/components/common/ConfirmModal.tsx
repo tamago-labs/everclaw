@@ -4,13 +4,14 @@ import { useTheme } from '../../context/ThemeContext';
 interface ConfirmModalProps {
   isOpen: boolean;
   title: string;
-  message: string;
+  message?: string;
   error?: string | null;
   confirmText?: string;
   cancelText?: string;
   onConfirm: () => void;
   onCancel: () => void;
   variant?: 'danger' | 'default';
+  customContent?: React.ReactNode;
 }
 
 export default function ConfirmModal({
@@ -23,6 +24,7 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   variant = 'default',
+  customContent,
 }: ConfirmModalProps) {
   const { isDark } = useTheme();
 
@@ -69,9 +71,11 @@ export default function ConfirmModal({
           </div>
         )}
 
-        <p className={`mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-          {message}
-        </p>
+        {customContent || (
+          <p className={`mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            {message}
+          </p>
+        )}
 
         <div className="flex gap-3">
           <button

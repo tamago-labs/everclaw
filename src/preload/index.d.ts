@@ -76,7 +76,7 @@ interface EverclawAPI {
     getModels: () => Promise<Record<'4B' | '1.7B', ModelInfo>>;
     selectModel: (modelType: '4B' | '1.7B') => Promise<AIResult>;
     loadModel: () => Promise<AIResult>;
-    sendPrompt: (message: string, history?: { role: string; content: string }[]) => Promise<AIResult>;
+    // sendPrompt: (message: string, history?: { role: string; content: string }[]) => Promise<AIResult>;
     unloadModel: () => Promise<AIResult>;
     onStreamToken: (callback: (token: string) => void) => void;
     removeStreamTokenListener: (callback: (...args: any[]) => void) => void;

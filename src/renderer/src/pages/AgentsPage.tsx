@@ -94,7 +94,7 @@ export default function AgentsPage() {
       case 'files':
         return <AgentFiles agentSlug={selectedAgent} />; 
       case 'cron-jobs':
-        return <AgentCronJobs />; 
+        return <AgentCronJobs agentSlug={selectedAgent} />;
       default:
         return null;
     }

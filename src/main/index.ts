@@ -18,7 +18,9 @@ import { registerTokensHandlers } from './services/tokens';
 import { registerBalancesHandlers } from './services/balances';
 import { registerPricingHandlers } from './services/pricing';
 import { getEnabledTools, executeTool, getToolSchema, registerToolsIpcHandlers } from './services/tools';
+import { registerCronsIpcHandlers, cronService } from './services/crons';
 import { compileSystemPrompt } from './services/agents/promptBuilder';
+import { setModelId } from './services/aiService';
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -101,6 +103,9 @@ async function loadQVACService(modelType: ModelType = '1.7B'): Promise<string | 
     
     console.log('QVAC model loaded:', modelId);
     logService(`[QVAC] ${modelDisplayName} loaded successfully`);
+    
+    // Sync model ID to aiService for cron jobs
+    setModelId(modelId);
     
     return modelId;
   } catch (error) {
@@ -325,25 +330,25 @@ function registerQVACIpcHandlers(): void {
   });
 
   // Send prompt to AI (non-streaming)
-  ipcMain.handle('ai:sendPrompt', async (_event, message: string, history: { role: string; content: string }[] = [], agentSlug?: string) => {
-    try {
-      if (!modelId) {
-        throw new Error('AI model not loaded');
-      }
+  // ipcMain.handle('ai:sendPrompt', async (_event, message: string, history: { role: string; content: string }[] = [], agentSlug?: string) => {
+  //   try {
+  //     if (!modelId) {
+  //       throw new Error('AI model not loaded');
+  //     }
       
-      // Compile system prompt if agentSlug provided
-      let finalHistory = history;
-      if (agentSlug) {
-        const systemPrompt = await compileSystemPrompt(agentSlug);
-        finalHistory = [{ role: 'system', content: systemPrompt }, ...history];
-      }
+  //     // Compile system prompt if agentSlug provided
+  //     let finalHistory = history;
+  //     if (agentSlug) {
+  //       const systemPrompt = await compileSystemPrompt(agentSlug);
+  //       finalHistory = [{ role: 'system', content: systemPrompt }, ...history];
+  //     }
       
-      return await executeCompletionWithTools(null, finalHistory, message);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get AI response';
-      return { success: false, error: message };
-    }
-  });
+  //     return await executeCompletionWithTools(null, finalHistory, message);
+  //   } catch (error) {
+  //     const message = error instanceof Error ? error.message : 'Failed to get AI response';
+  //     return { success: false, error: message };
+  //   }
+  // });
 
   // Helper function to execute a completion and handle tool calls
   // Supports both streaming (with event sender) and non-streaming (event = null)
@@ -545,12 +550,18 @@ app.whenReady().then(async () => {
   // Register tools IPC handlers
   registerToolsIpcHandlers();
 
+  // Register crons IPC handlers
+  registerCronsIpcHandlers();
+
   // Register IPC handlers
   registerWDKIpcHandlers();
   registerQVACIpcHandlers();
 
   // Create window
   createWindow();
+  
+  // Start cron service
+  cronService.start();
   
   // Note: Model is not auto-loaded. User will select model via UI.
   logService('[App] Everclaw ready. Select AI model to begin.');
@@ -568,9 +579,11 @@ app.on('activate', () => {
   }
 });
 
-// Unload model before quitting
+// Unload model and stop cron service before quitting
 app.on('before-quit', async () => {
-
+  // Stop cron service
+  cronService.stop();
+  
   if (modelId) {
     try {
       await unloadModel({ modelId });
