@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import { z } from 'zod';
 import { getAddressTool, getBalanceTool, approveTool, transferTool, sendNativeTool } from './wallet';
 import { getPriceTool } from './price';
+import { evmVeloraQuoteSwapTool, evmVeloraExecuteSwapTool } from './swap';
 import { getToolsPreferences, saveToolsPreferences, isToolEnabled, ensureToolsConfigExists } from './storage';
 
 // Tool interface - matches QVAC tool format for tools parameter
@@ -42,6 +43,8 @@ const toolDefinitions: ToolDefinition[] = [
   approveTool as unknown as ToolDefinition,
   transferTool as unknown as ToolDefinition,
   sendNativeTool as unknown as ToolDefinition,
+  evmVeloraQuoteSwapTool as unknown as ToolDefinition,
+  evmVeloraExecuteSwapTool as unknown as ToolDefinition,
 ];
 
 // Get all tool definitions

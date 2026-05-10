@@ -11,6 +11,11 @@ import WalletManagerBtcModule from '@tetherto/wdk-wallet-btc';
 
 import type { AccountInfo } from './types';
 
+// @ts-ignore - Swap protocol is ESM module
+import SwapProtocolVeloraEvmModule from '@tetherto/wdk-protocol-swap-velora-evm';
+
+const SwapProtocolVeloraEvm = (SwapProtocolVeloraEvmModule as any).default || SwapProtocolVeloraEvmModule;
+
 // Handle ESM default exports
 const WDK = (WDKModule as any).default || WDKModule;
 const WalletManagerEvm = (WalletManagerEvmModule as any).default || WalletManagerEvmModule;
@@ -244,6 +249,74 @@ export class WDKService {
         return {
             hash: result.hash,
             fee: result.fee?.toString() || '0',
+        };
+    }
+
+    /**
+     * Get swap protocol for EVM chain (Velora)
+     */
+    getSwapProtocol(chain: 'ethereum' | 'polygon' | 'arbitrum'): any {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+        const account = wdkInstance.getAccount(chain, 0);
+        return new SwapProtocolVeloraEvm(account, {
+            swapMaxFee: 500000000000000n // 0.0005 ETH max fee
+        });
+    }
+
+    /**
+     * Quote a token swap (EVM only, Velora)
+     */
+    async quoteSwap(
+        chain: 'ethereum' | 'polygon' | 'arbitrum',
+        tokenInAddress: string,
+        tokenOutAddress: string,
+        amountIn: string,
+        decimals: number
+    ): Promise<{ tokenInAmount: string; tokenOutAmount: string; fee: string }> {
+        const protocol = this.getSwapProtocol(chain);
+        
+        // Convert human-readable amount to base units
+        const baseAmount = BigInt(amountIn) * BigInt(10 ** decimals);
+        
+        const quote = await protocol.quoteSwap({
+            tokenIn: tokenInAddress,
+            tokenOut: tokenOutAddress,
+            tokenInAmount: baseAmount
+        });
+        
+        return {
+            tokenInAmount: quote.tokenInAmount.toString(),
+            tokenOutAmount: quote.tokenOutAmount.toString(),
+            fee: quote.fee.toString()
+        };
+    }
+
+    /**
+     * Execute a token swap (EVM only, Velora)
+     */
+    async executeSwap(
+        chain: 'ethereum' | 'polygon' | 'arbitrum',
+        tokenInAddress: string,
+        tokenOutAddress: string,
+        amountIn: string,
+        decimals: number
+    ): Promise<{ hash: string; tokenInAmount: string; tokenOutAmount: string; fee: string }> {
+        const protocol = this.getSwapProtocol(chain);
+        
+        // Convert human-readable amount to base units
+        const baseAmount = BigInt(amountIn) * BigInt(10 ** decimals);
+        
+        const result = await protocol.swap({
+            tokenIn: tokenInAddress,
+            tokenOut: tokenOutAddress,
+            tokenInAmount: baseAmount
+        });
+        
+        return {
+            hash: result.hash,
+            tokenInAmount: result.tokenInAmount.toString(),
+            tokenOutAmount: result.tokenOutAmount.toString(),
+            fee: result.fee.toString()
         };
     }
 
