@@ -436,10 +436,17 @@ function registerQVACIpcHandlers(): void {
       console.log("\n🔧 Executing Tool Calls...");
       logService(`[Tool] Executing ${toolCalls.length} tool call(s)...`);
       const toolResults = await Promise.all(toolCalls.map(async (call) => {
-        const result = await executeTool(call.name, call.arguments as Record<string, unknown>);
-        console.log(`  ✓ ${call.name}: ${result}`);
-        logService(`[Tool] ${call.name}: ${result}`);
-        return { toolCallId: call.id, result };
+        try {
+          const result = await executeTool(call.name, call.arguments as Record<string, unknown>);
+          console.log(`  ✓ ${call.name}: ${result}`);
+          logService(`[Tool] ${call.name}: ${result}`);
+          return { toolCallId: call.id, result };
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          console.log(`  ✗ ${call.name}: ${errorMsg}`);
+          logService(`[Tool] ${call.name}: Error - ${errorMsg}`);
+          return { toolCallId: call.id, result: `Error: ${errorMsg}` };
+        }
       }));
 
       // Add tool results to history

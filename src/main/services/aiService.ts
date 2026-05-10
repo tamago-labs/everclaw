@@ -84,9 +84,15 @@ export async function executeAiCompletion(
       // Execute tool calls
       console.log("[Cron] Executing tool calls...");
       const toolResults = await Promise.all(toolCalls.map(async (call) => {
-        const result = await executeTool(call.name, call.arguments as Record<string, unknown>);
-        console.log(`  ✓ ${call.name}`);
-        return { toolCallId: call.id, result };
+        try {
+          const result = await executeTool(call.name, call.arguments as Record<string, unknown>);
+          console.log(`  ✓ ${call.name}`);
+          return { toolCallId: call.id, result };
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          console.log(`  ✗ ${call.name}: ${errorMsg}`);
+          return { toolCallId: call.id, result: `Error: ${errorMsg}` };
+        }
       }));
 
       // Add tool results to history
