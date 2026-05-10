@@ -9,7 +9,7 @@ export const sendNativeSchema = z.object({
 
 export const sendNativeMetadata = {
   uiDescription: 'Send native currency (ETH, SOL, BTC, etc.) to another address. Works on all supported chains.',
-  tags: ['wallet', 'native', 'send'],
+  tags: ['wallet'],
   requiredTools: [] as string[],
   packages: ['@tetherto/wdk-wallet-evm', '@tetherto/wdk-wallet-solana', '@tetherto/wdk-wallet-btc'],
   parameters: {

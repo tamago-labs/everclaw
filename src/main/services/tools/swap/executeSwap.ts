@@ -12,7 +12,7 @@ export const evmVeloraExecuteSwapSchema = z.object({
 
 export const evmVeloraExecuteSwapMetadata = {
   uiDescription: 'Execute a token swap via Velora DEX on EVM chains. This broadcasts a real transaction - ensure you have sufficient balance and the quote looks correct.',
-  tags: ['swap', 'defi', 'velora', 'ethereum', 'polygon', 'arbitrum'],
+  tags: ['swap', 'defi',  'ethereum', 'polygon', 'arbitrum'],
   requiredTools: [] as string[],
   packages: ['@tetherto/wdk-protocol-swap-velora-evm', '@tetherto/wdk-wallet-evm'],
   parameters: {

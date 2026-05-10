@@ -11,7 +11,7 @@ export const approveSchema = z.object({
 
 export const approveMetadata = {
   uiDescription: 'Approve a spender to spend tokens. Required before using tokens with DeFi protocols.',
-  tags: ['wallet', 'token', 'defi'],
+  tags: ['wallet'],
   requiredTools: [] as string[],
   packages: ['@tetherto/wdk-wallet-evm'],
   parameters: {

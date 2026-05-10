@@ -11,7 +11,7 @@ export const transferSchema = z.object({
 
 export const transferMetadata = {
   uiDescription: 'Transfer tokens to another address. Works on EVM chains and Solana.',
-  tags: ['wallet', 'token', 'transfer'],
+  tags: ['wallet'],
   requiredTools: [] as string[],
   packages: ['@tetherto/wdk-wallet-evm', '@tetherto/wdk-wallet-solana'],
   parameters: {
