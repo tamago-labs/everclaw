@@ -14,7 +14,11 @@ import type { AccountInfo } from './types';
 // @ts-ignore - Swap protocol is ESM module
 import SwapProtocolVeloraEvmModule from '@tetherto/wdk-protocol-swap-velora-evm';
 
+// @ts-ignore - Bridge protocol is ESM module
+import Usdt0ProtocolEvmModule from '@tetherto/wdk-protocol-bridge-usdt0-evm';
+
 const SwapProtocolVeloraEvm = (SwapProtocolVeloraEvmModule as any).default || SwapProtocolVeloraEvmModule;
+const Usdt0ProtocolEvm = (Usdt0ProtocolEvmModule as any).default || Usdt0ProtocolEvmModule;
 
 // Handle ESM default exports
 const WDK = (WDKModule as any).default || WDKModule;
@@ -317,6 +321,49 @@ export class WDKService {
             tokenInAmount: result.tokenInAmount.toString(),
             tokenOutAmount: result.tokenOutAmount.toString(),
             fee: result.fee.toString()
+        };
+    }
+
+    /**
+     * Get bridge protocol for EVM / Solana chain (LayerZero USDT0)
+     */
+    getBridgeProtocol(chain: string): any {
+        if (!wdkInstance) throw new Error('WDK not initialized');
+        const account = wdkInstance.getAccount(chain, 0);
+        return new Usdt0ProtocolEvm(account, {
+            bridgeMaxFee: 5000000000000000n // 0.005 ETH max bridge fee
+        });
+    }
+
+    /**
+     * Execute a bridge (EVM source to EVM or Solana destination)
+     */
+    async executeBridge(
+        sourceChain: string,
+        targetChain: string,
+        recipient: string,
+        tokenAddress: string,
+        amount: string,
+        decimals: number
+    ): Promise<{ hash: string; approveHash?: string; resetAllowanceHash?: string; fee: string; bridgeFee?: string }> {
+        const protocol = this.getBridgeProtocol(sourceChain);
+        
+        // Convert human-readable amount to base units
+        const baseAmount = BigInt(amount) * BigInt(10 ** decimals);
+        
+        const result = await protocol.bridge({
+            targetChain,
+            recipient,
+            token: tokenAddress,
+            amount: baseAmount
+        });
+        
+        return {
+            hash: result.hash,
+            approveHash: result.approveHash,
+            resetAllowanceHash: result.resetAllowanceHash,
+            fee: result.fee.toString(),
+            bridgeFee: result.bridgeFee?.toString()
         };
     }
 
