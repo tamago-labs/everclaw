@@ -12,7 +12,7 @@ export const luloQuoteSupplySchema = z.object({
 
 export const luloQuoteSupplyMetadata = {
   uiDescription: 'Preview supply to Lulo lending before executing.',
-  tags: ['lending', 'lulo', 'solana'],
+  tags: ['lending', 'defi', 'solana'],
   requiredTools: [] as string[],
   packages: [] as string[],
   parameters: {
@@ -67,7 +67,7 @@ export const luloExecuteSupplySchema = z.object({
 
 export const luloExecuteSupplyMetadata = {
   uiDescription: 'Supply tokens to Lulo lending. Broadcasts a real transaction.',
-  tags: ['lending', 'lulo', 'solana'],
+  tags: ['lending', 'defi', 'solana'],
   requiredTools: [] as string[],
   packages: [] as string[],
   parameters: {

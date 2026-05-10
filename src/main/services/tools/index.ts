@@ -4,6 +4,19 @@ import { getAddressTool, getBalanceTool, approveTool, transferTool, sendNativeTo
 import { getPriceTool } from './price';
 import { evmVeloraQuoteSwapTool, evmVeloraExecuteSwapTool } from './swap';
 import { solanaJupiterQuoteSwapTool, solanaJupiterExecuteSwapTool } from '../swap/solana';
+import { 
+  sanctumQuoteSwapTool, 
+  sanctumExecuteSwapTool,
+  sanctumGetLSTInfoTool,
+  sanctumGetOwnedLSTsTool,
+} from './sanctum';
+import { solayerStakeTool } from './solayer';
+import { 
+  luloQuoteSupplyTool, 
+  luloExecuteSupplyTool,
+  luloQuoteWithdrawTool,
+  luloExecuteWithdrawTool,
+} from './lulo';
 import { getToolsPreferences, saveToolsPreferences, isToolEnabled, ensureToolsConfigExists } from './storage';
 
 // Tool interface - matches QVAC tool format for tools parameter
@@ -48,6 +61,18 @@ const toolDefinitions: ToolDefinition[] = [
   evmVeloraExecuteSwapTool as unknown as ToolDefinition,
   solanaJupiterQuoteSwapTool as unknown as ToolDefinition,
   solanaJupiterExecuteSwapTool as unknown as ToolDefinition,
+  // Sanctum LST tools
+  sanctumQuoteSwapTool as unknown as ToolDefinition,
+  sanctumExecuteSwapTool as unknown as ToolDefinition,
+  sanctumGetLSTInfoTool as unknown as ToolDefinition,
+  sanctumGetOwnedLSTsTool as unknown as ToolDefinition,
+  // Solayer staking
+  solayerStakeTool as unknown as ToolDefinition,
+  // Lulo lending tools
+  luloQuoteSupplyTool as unknown as ToolDefinition,
+  luloExecuteSupplyTool as unknown as ToolDefinition,
+  luloQuoteWithdrawTool as unknown as ToolDefinition,
+  luloExecuteWithdrawTool as unknown as ToolDefinition,
 ];
 
 // Get all tool definitions

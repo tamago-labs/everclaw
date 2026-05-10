@@ -12,7 +12,7 @@ export const luloQuoteWithdrawSchema = z.object({
 
 export const luloQuoteWithdrawMetadata = {
   uiDescription: 'Preview withdraw from Lulo lending before executing.',
-  tags: ['lending', 'lulo', 'solana'],
+  tags: ['lending',  'defi', 'solana'],
   requiredTools: [] as string[],
   packages: [] as string[],
   parameters: {
@@ -67,7 +67,7 @@ export const luloExecuteWithdrawSchema = z.object({
 
 export const luloExecuteWithdrawMetadata = {
   uiDescription: 'Withdraw tokens from Lulo lending. Broadcasts a real transaction.',
-  tags: ['lending', 'lulo', 'solana'],
+  tags: ['lending','defi', 'solana'],
   requiredTools: [] as string[],
   packages: [] as string[],
   parameters: {

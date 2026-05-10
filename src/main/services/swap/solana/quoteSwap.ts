@@ -10,7 +10,7 @@ export const solanaJupiterQuoteSwapSchema = z.object({
 
 export const solanaJupiterQuoteSwapMetadata = {
   uiDescription: 'Get a quote for a Jupiter swap on Solana. Shows expected output amount and price impact without executing the trade.',
-  tags: ['swap', 'defi', 'jupiter', 'solana'],
+  tags: ['swap', 'defi', 'solana'],
   requiredTools: [] as string[],
   packages: [] as string[],
   parameters: {

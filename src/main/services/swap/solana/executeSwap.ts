@@ -11,7 +11,7 @@ export const solanaJupiterExecuteSwapSchema = z.object({
 
 export const solanaJupiterExecuteSwapMetadata = {
   uiDescription: 'Execute a token swap via Jupiter DEX on Solana. This broadcasts a real transaction - ensure you have sufficient balance and the quote looks correct.',
-  tags: ['swap', 'defi', 'jupiter', 'solana'],
+  tags: ['swap', 'defi', 'solana'],
   requiredTools: [] as string[],
   packages: [] as string[],
   parameters: {

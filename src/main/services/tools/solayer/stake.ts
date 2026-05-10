@@ -8,7 +8,7 @@ export const solayerStakeSchema = z.object({
 
 export const solayerStakeMetadata = {
   uiDescription: 'Stake SOL to receive sSOL on Solayer.',
-  tags: ['staking', 'solana'],
+  tags: ['staking',  'defi', 'solana'],
   requiredTools: [] as string[],
   packages: [] as string[],
   parameters: {
