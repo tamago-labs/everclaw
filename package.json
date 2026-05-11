@@ -1,8 +1,8 @@
 {
   "name": "everclaw",
   "productName": "Everclaw",
-  "version": "0.1.0",
-  "description": "My Electron application description",
+  "version": "1.0.0-alpha.1",
+  "description": "Local AI Wallet OS for Solana & Ethereum",
   "main": "./out/main/index.js",
   "author": "Tamago Labs",
   "license": "MIT",
@@ -15,7 +15,6 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
-    "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
