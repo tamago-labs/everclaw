@@ -21,7 +21,7 @@ export default function AboutTab() {
         <div className="space-y-3">
           <div className="flex justify-between py-2 border-b border-[var(--color-border-subtle)]">
             <span className="text-sm text-[var(--color-text-muted)]">Version</span>
-            <span className="text-sm text-[var(--color-text-primary)]">0.1.0</span>
+            <span className="text-sm text-[var(--color-text-primary)]">1.0.0-alpha.1</span>
           </div>
           <div className="flex justify-between py-2 border-b border-[var(--color-border-subtle)]">
             <span className="text-sm text-[var(--color-text-muted)]">Wallet Engine</span>
@@ -29,11 +29,11 @@ export default function AboutTab() {
           </div>
           <div className="flex justify-between py-2 border-b border-[var(--color-border-subtle)]">
             <span className="text-sm text-[var(--color-text-muted)]">Chains Supported</span>
-            <span className="text-sm text-[var(--color-text-primary)]">2 (EVM, Solana)</span>
+            <span className="text-sm text-[var(--color-text-primary)]">5 (Ethereum, Polygon, Arbitrum, Solana, Bitcoin)</span>
           </div>
           <div className="flex justify-between py-2">
-            <span className="text-sm text-[var(--color-text-muted)]">Framework</span>
-            <span className="text-sm text-[var(--color-text-primary)]">Electron + React</span>
+            <span className="text-sm text-[var(--color-text-muted)]">AI Models</span>
+            <span className="text-sm text-[var(--color-text-primary)]">Qwen3-1.7B / Qwen3-4B</span>
           </div>
         </div>
       </div>
