@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import { Crown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useWallet } from '../../context/WalletContext';
 
 export default function WelcomeCard() {
   const { isDark } = useTheme();
+  const { hasWallet } = useWallet()
 
   return (
     <motion.div
@@ -45,22 +47,42 @@ export default function WelcomeCard() {
             Welcome to Everclaw
           </h2>
           <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Create a wallet to start using private local AI agents for Solana and Ethereum
+            {hasWallet
+              ? 'Your wallet is ready. Ask anything or manage your portfolio.'
+              : 'Create a wallet to start using private local AI agents for Solana and Ethereum'}
           </p>
-          
-          {/* Setup Wallet Link */}
-          <a
-            href="#/setup-wallet"
-            className={`inline-flex items-center gap-2 font-medium text-sm transition-colors text-accent-primary hover:text-accent-primary/80`}
-          >
-            Setup Wallet
-          </a>
-          <a
-            href="#/chat"
-            className={`ml-4 inline-flex items-center gap-2 font-medium text-sm transition-colors text-accent-primary hover:text-accent-primary/80`}
-          >
-            Try Chat
-          </a>
+
+          {hasWallet ? (
+            <>
+              <a
+                href="#/chat"
+                className={`inline-flex items-center gap-2 font-medium text-sm transition-colors text-accent-primary hover:text-accent-primary/80`}
+              >
+                Start Chat
+              </a>
+              <a
+                href="#/cron-jobs"
+                className={`ml-4 inline-flex items-center gap-2 font-medium text-sm transition-colors text-accent-primary hover:text-accent-primary/80`}
+              >
+                Setup Cron Jobs
+              </a>
+            </>
+          ) : (
+            <>
+              <a
+                href="#/setup-wallet"
+                className={`inline-flex items-center gap-2 font-medium text-sm transition-colors text-accent-primary hover:text-accent-primary/80`}
+              >
+                Setup Wallet
+              </a>
+              <a
+                href="#/chat"
+                className={`ml-4 inline-flex items-center gap-2 font-medium text-sm transition-colors text-accent-primary hover:text-accent-primary/80`}
+              >
+                Try Chat
+              </a>
+            </>
+          )}
         </div>
 
         {/* Icon with blur glow circle - same style as StatCard */}
