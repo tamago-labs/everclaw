@@ -1,0 +1,50 @@
+# Business Source License
+
+This license governs use of the accompanying software. If you use the software, you accept this license. If you do not accept the license, do not use the software.
+
+## Definitions
+
+"Software" means the computer program(s) and documentation provided with this license.
+
+"You" means the individual or entity exercising rights under this license.
+
+## Grant of License
+
+Subject to the terms and conditions of this license, we grant you a non-exclusive, royalty-free, limited license to:
+
+1. Copy and use the Software for non-commercial purposes
+2. Modify the Software for non-commercial purposes
+3. Use the Software internally within your organization
+
+## Conditions and Restrictions
+
+1. **Commercial Use Prohibited**: You may not use, copy, modify, or distribute the Software, in whole or in part, for any commercial purpose, including but not limited to:
+   - Using the Software to provide services to third parties
+   - Sublicensing, renting, or leasing the Software
+   - Using the Software as part of a hosted or SaaS service
+
+2. **Attribution Required**: If you distribute copies of the Software, you must include this license and the copyright notice.
+
+3. **No Patent Claims**: You may not make any claim against us or our licensors that the Software or any portion thereof infringes any patent.
+
+## Termination
+
+This license is effective until terminated. Your rights under this license will terminate automatically without notice if you fail to comply with any term or condition of this license.
+
+## Disclaimer of Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## Limitation of Liability
+
+IN NO EVENT WILL WE OR OUR LICENSORS BE LIABLE FOR ANY LOST REVENUE, PROFIT, OR DATA, OR FOR INDIRECT, SPECIAL, INCIDENTAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, REGARDLESS OF CAUSE OR THE THEORY OF LIABILITY, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+## Transition to Open Source
+
+After four (4) years from the date of first release of the Software, the Software will automatically convert to the GNU General Public License version 3 (GPLv3). Upon conversion, all provisions of this license that conflict with GPLv3 will be deemed superseded by GPLv3.
+
+---
+
+Copyright (c) 2025 Tamago Labs
+
+This license is specific to this project and is not the official Uniswap BSL.
