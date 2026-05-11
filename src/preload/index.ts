@@ -60,6 +60,7 @@ contextBridge.exposeInMainWorld('everclawAPI', {
     delete: (slug: string) => ipcRenderer.invoke('agents:delete', slug),
     get: (slug: string) => ipcRenderer.invoke('agents:get', slug),
     init: () => ipcRenderer.invoke('agents:init'),
+    getSystemPrompt: (slug: string) => ipcRenderer.invoke('agents:getSystemPrompt', slug),
     workspace: {
       files: (slug: string) => ipcRenderer.invoke('agents:workspace:files', slug),
       read: (slug: string, filename: string) => ipcRenderer.invoke('agents:workspace:read', slug, filename),

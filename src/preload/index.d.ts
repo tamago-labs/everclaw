@@ -96,6 +96,33 @@ interface EverclawAPI {
     getInfo: () => Promise<ToolInfo[]>;
     toggle: (toolName: string, enabled: boolean) => Promise<{ success: boolean }>;
   };
+
+  // Agents operations
+  agents: {
+    list: () => Promise<{ slug: string; sessionsCount?: number; workspacesCount?: number }[]>;
+    create: (name: string) => Promise<{ slug: string }>;
+    delete: (slug: string) => Promise<{ success: boolean }>;
+    get: (slug: string) => Promise<any>;
+    init: () => Promise<{ success: boolean }>;
+    getSystemPrompt: (slug: string) => Promise<string>;
+    workspace: {
+      files: (slug: string) => Promise<string[]>;
+      read: (slug: string, filename: string) => Promise<{ filename: string; content: string }>;
+      write: (slug: string, filename: string, content: string) => Promise<{ success: boolean }>;
+    };
+  };
+
+  // Sessions operations
+  sessions: {
+    list: (agentSlug: string) => Promise<string[]>;
+    create: (agentSlug: string, name: string) => Promise<{ slug: string }>;
+    delete: (agentSlug: string, sessionSlug: string) => Promise<{ success: boolean }>;
+    get: (agentSlug: string, sessionSlug: string) => Promise<any>;
+    ensureMain: (agentSlug: string) => Promise<{ success: boolean }>;
+    saveMessages: (agentSlug: string, sessionSlug: string, messages: any[]) => Promise<{ success: boolean }>;
+    loadMessages: (agentSlug: string, sessionSlug: string) => Promise<any[]>;
+    getAllSessions: () => Promise<any[]>;
+  };
 }
 
 declare global {

@@ -23,14 +23,14 @@ const defaultToolsPreferences: Record<string, boolean> = {
   sanctum_quote_swap: false,
   sanctum_execute_swap: false,
   sanctum_get_lst_info: false,
-  sanctum_get_owned_lsts: false,
+  sanctum_get_owned_lst: false,
   // Solayer staking
   solayer_stake: false,
   // Lulo lending
   lulo_quote_supply: false,
-  lulo_execute_supply: false,
+  lulo_supply: false,
   lulo_quote_withdraw: false,
-  lulo_execute_withdraw: false,
+  lulo_withdraw: false,
 };
 
 export interface ToolsPreferences {
