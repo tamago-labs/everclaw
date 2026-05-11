@@ -19,6 +19,12 @@ const pricingProvider = new PricingProvider({
  */
 export async function getLastPrice(symbol: string): Promise<number> {
   try {
+    // Stablecoins are always $1
+    const stablecoins = ['USDC', 'USDT', 'DAI', 'USDD'];
+    if (stablecoins.includes(symbol.toUpperCase())) {
+      return 1.0;
+    }
+    
     const price = await pricingProvider.getLastPrice(symbol, 'USD');
     return price || 0;
   } catch (error) {
