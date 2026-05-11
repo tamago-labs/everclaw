@@ -42,7 +42,7 @@ export default function ToolsLayout({ toolsInfo, toolsStatus, onToggle }: ToolsL
     return acc;
   }, {} as Record<string, boolean>);
   
-  // Extract all unique tags
+  // Extract all unique tags with counts
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     toolsInfo.forEach(tool => {
@@ -50,6 +50,15 @@ export default function ToolsLayout({ toolsInfo, toolsStatus, onToggle }: ToolsL
     });
     return Array.from(tags).sort();
   }, [toolsInfo]);
+  
+  // Tag counts
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    allTags.forEach(tag => {
+      counts[tag] = toolsInfo.filter(tool => tool.tags.includes(tag)).length;
+    });
+    return counts;
+  }, [allTags, toolsInfo]);
   
   // Filter tools by tag
   const filteredTools = useMemo(() => {
@@ -101,8 +110,8 @@ export default function ToolsLayout({ toolsInfo, toolsStatus, onToggle }: ToolsL
               label=""
               value={selectedTag}
               options={[
-                { value: 'all', label: 'All Tools' },
-                ...allTags.map(tag => ({ value: tag, label: tag })),
+                { value: 'all', label: `All Tools (${toolsInfo.length})` },
+                ...allTags.map(tag => ({ value: tag, label: `${tag} (${tagCounts[tag]})` })),
               ]}
               onChange={(tag) => {
                 setSelectedTag(tag);
