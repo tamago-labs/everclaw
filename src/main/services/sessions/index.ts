@@ -120,7 +120,8 @@ export function registerSessionsIpcHandlers(): void {
           const metadata = storage.getSessionMetadata(agentSlug, sessionSlug);
           const messages = storage.loadMessages(agentSlug, sessionSlug);
           
-          // Count tokens from messages
+          // Count messages and tokens
+          const messagesCount = messages.length;
           let tokenCount = 0;
           for (const msg of messages) {
             tokenCount += (msg.content?.length || 0);
@@ -132,6 +133,7 @@ export function registerSessionsIpcHandlers(): void {
             session: sessionSlug,
             created: metadata?.created ? metadata.created.toISOString() : new Date().toISOString(),
             lastActive: metadata?.lastActive ? metadata.lastActive.toISOString() : new Date().toISOString(),
+            messagesCount,
             tokens: tokenCount,
             compaction: 'auto',
           });

@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import * as storage from './storage';
+import { compileSystemPrompt } from './promptBuilder';
 
 // Convert name to slug format
 function nameToSlug(name: string): string {
@@ -128,6 +129,17 @@ export function registerAgentsIpcHandlers(): void {
       return { success: true };
     } catch (error) {
       console.error('Failed to write workspace file:', error);
+      throw error;
+    }
+  });
+
+  // Get compiled system prompt
+  ipcMain.handle('agents:getSystemPrompt', async (_event, slug: string) => {
+    try {
+      const prompt = await compileSystemPrompt(slug);
+      return prompt;
+    } catch (error) {
+      console.error('Failed to get system prompt:', error);
       throw error;
     }
   });
