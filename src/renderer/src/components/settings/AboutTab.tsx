@@ -21,7 +21,7 @@ export default function AboutTab() {
         <div className="space-y-3">
           <div className="flex justify-between py-2 border-b border-[var(--color-border-subtle)]">
             <span className="text-sm text-[var(--color-text-muted)]">Version</span>
-            <span className="text-sm text-[var(--color-text-primary)]">1.0.0-alpha.1</span>
+            <span className="text-sm text-[var(--color-text-primary)]">1.0.0-alpha.2</span>
           </div>
           <div className="flex justify-between py-2 border-b border-[var(--color-border-subtle)]">
             <span className="text-sm text-[var(--color-text-muted)]">Wallet Engine</span>

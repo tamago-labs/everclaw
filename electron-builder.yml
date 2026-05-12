@@ -2,15 +2,25 @@ appId: com.tamagolabs.everclaw
 productName: Everclaw
 directories:
   buildResources: build
+  output: dist
 files:
-  - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
-  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - "out/**"
+  - "node_modules/**"
+  - "dist/**/*"
+  - "package.json"
+  - "!**/.vscode/*"
+  - "!src/*"
+  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
+  - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
+  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
 asar: false
-npmRebuild: false
+npmRebuild: true
+extraResources:
+  - from: "node_modules/bare-runtime-win32-x64"
+    to: "bare-runtime-win32-x64"
+  - from: "node_modules/bare-runtime"
+    to: "bare-runtime"
 win:
   executableName: Everclaw
 nsis:

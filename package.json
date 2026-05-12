@@ -1,7 +1,7 @@
 {
   "name": "everclaw",
   "productName": "Everclaw",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "Local AI Wallet OS for Solana & Ethereum",
   "main": "./out/main/index.js",
   "author": "Tamago Labs",
@@ -14,9 +14,10 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
+    "postinstall": "electron-builder install-app-deps",
     "build": "npm run typecheck && electron-vite build",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
+    "build:win": "npm run build && electron-builder --win nsis",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux"
   },
@@ -25,6 +26,7 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@qvac/sdk": "^0.10.0",
+    "@solana/kit": "^4.0.0",
     "@solana/web3.js": "^1.98.4",
     "@tailwindcss/vite": "^4.2.4",
     "@tetherto/wdk": "^1.0.0-beta.9",
@@ -34,10 +36,22 @@
     "@tetherto/wdk-wallet-btc": "^1.0.0-beta.9",
     "@tetherto/wdk-wallet-evm": "^1.0.0-beta.12",
     "@tetherto/wdk-wallet-solana": "^1.0.0-beta.8",
+    "bare-os": "3.6.2",
+    "bare-subprocess": "5.2.1",
+    "buffer": "6.0.3",
+    "bare-link": "^3.2.1",
+    "bare-rpc": "^1.3.1",
+    "bare-runtime": "^1.28.5",
+    "bare-runtime-win32-x64": "^1.28.5",
+    "hyperdht": "^6.29.6",
+    "hyperdrive": "^13.3.2",
+    "jszip": "3.10.1",
+    "mirror-drive": "^1.14.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
     "react-router": "^7.14.2",
     "tailwindcss": "^4.2.4",
+    "tar-stream": "^3.2.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -59,6 +73,7 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "typescript": "^5.9.3",
-    "vite": "^7.2.6"
+    "vite": "^7.2.6",
+    "bare-pack": "1.4.8"
   }
 }
