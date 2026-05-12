@@ -2,6 +2,11 @@
 
 **OpenClaw-Style Local AI Agents for Solana & Ethereum**
 
+## Demo Videos
+
+- [3-min Product Demo](https://youtu.be/bb-4OV3lBL8)
+- [2-min Presentation](https://youtu.be/1O0-WISvY6s)
+
 ## Overview
 
 Everclaw transforms your desktop into a complete AI Wallet Operating System for Solana and Ethereum. Through natural language commands, the local AI agent handles everything from portfolio management to on-chain execution — with full transparency and user control.
@@ -15,6 +20,25 @@ Powered by Tether's QVAC (for local AI inference) and WDK (for self-custodial wa
 - **WDK Wallet** — Single wallet for Solana + 20+ chains. Self-custodial, battle-tested.
 - **Curated Tools** — 20+ custom Solana tools (Jupiter, Sanctum, Solayer, Lulo) + WDK official tools.
 - **Workspaces** — OpenClaw-style multi-agent with custom context, rules, identity, and persistent sessions.
+
+## System Requirements
+
+### Required
+
+| Requirement | Notes |
+|-------------|-------|
+| **Node.js >= 22.17** | Prefer Node 22+ for QVAC SDK compatibility |
+| **npm >= 10.9** | Package manager |
+| **Total RAM >= 2GB** (recommended 4GB+) | Below 4GB, most LLMs will fail to load |
+
+### Recommended
+
+| Requirement | When it is needed |
+|-------------|-------------------|
+| **Available RAM >= 2GB** | Needed when loading a model |
+| **GPU acceleration** | Metal (macOS), Vulkan (Linux/Windows) for faster inference |
+| **Free disk >= 5GB** | Model artifacts are typically multi-GB per model |
+
 
 ## Quick Start
 
