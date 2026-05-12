@@ -2,6 +2,8 @@
 
 **Enables Private Local AI Agents for Solana & Ethereum with OpenClaw-Style Persistence**
 
+<img width="950" height="504" alt="Screenshot 2026-05-12 052907" src="https://github.com/user-attachments/assets/9e7cc4c4-a984-4e9f-abb3-74fbabf445ca" />
+
 ## Demo Videos
 
 - [3-min Product Demo](https://youtu.be/bb-4OV3lBL8)
@@ -11,7 +13,7 @@
 
 Everclaw is an Electron-based desktop application that transforms your computer into a local AI wallet operating system for Solana and Ethereum.
 
-It enables natural language control of local AI agents that can manage portfolios, execute on-chain transactions, and automate Web3 workflows — all with full transparency and user control.
+It enables natural language control of local AI agents that can manage portfolios, execute on-chain transactions, and automate Web3 workflows while keeping everything fully private and no cost to run.
 
 Powered by Tether’s QVAC (local AI inference) and WDK (self-custodial wallet operations), Everclaw runs entirely on-device. There are no AI subscriptions, and your keys, data, and AI reasoning never leave your machine.
 
@@ -43,6 +45,8 @@ Powered by Tether’s QVAC (local AI inference) and WDK (self-custodial wallet o
 
 ## Quick Start
 
+<img width="188" height="204" alt="Screenshot 2026-05-11 175839" src="https://github.com/user-attachments/assets/0965086b-ea48-4d15-9cae-6504ec4535e7" />
+
 ### Windows
 Download the installer from the [Releases](https://github.com/tamago-labs/everclaw/releases) page and run the `.exe` file.
 
@@ -62,7 +66,10 @@ npm run build:unpack
 ```
 
 ### AI Model Selection
+
 On every startup, the app displays a model selection screen. Choose the AI model that matches your hardware:
+
+<img width="438" height="370" alt="Screenshot 2026-05-12 055939" src="https://github.com/user-attachments/assets/343160f1-9dd5-41e3-ae44-b02e406e03ea" />
 
 | Model | Requirements | Use Case |
 |-------|--------------|----------|
@@ -115,7 +122,14 @@ Inspired by OpenClaw, Everclaw uses a minimal workspace system designed for low-
 
 These files are compiled into the system prompt, keeping the AI focused and organized. Multiple agents can be created for different purposes.
 
+<img width="950" height="504" alt="Screenshot 2026-05-12 052536" src="https://github.com/user-attachments/assets/0b77be41-b55c-4aa8-9084-397d6205adaf" />
+
+<img width="950" height="504" alt="Screenshot 2026-05-12 052635" src="https://github.com/user-attachments/assets/dcbb5423-c78d-4d59-b4e3-d7a6556ab01c" />
+
 ### Multi-Session Support
+
+<img width="950" height="504" alt="Screenshot 2026-05-12 074725" src="https://github.com/user-attachments/assets/d524e9c1-e207-41ee-b6e2-b48b4c2ba49b" />
+
 Each agent supports multiple chat sessions, allowing you to:
 - Maintain separate conversation threads for different tasks
 - Keep history organized across sessions
