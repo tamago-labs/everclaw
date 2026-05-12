@@ -137,6 +137,8 @@ Each agent supports multiple chat sessions, allowing you to:
 
 ## Automated Tasks
 
+<img width="363" height="405" alt="Screenshot 2026-05-12 075739" src="https://github.com/user-attachments/assets/7ac60ccb-b978-4c7a-b050-1c496fdde249" />
+
 Schedule autonomous AI tasks to run on a cron schedule:
 
 - Create recurring prompts (e.g., "Check my portfolio every 6 hours")
@@ -148,6 +150,8 @@ Schedule autonomous AI tasks to run on a cron schedule:
 Example: Schedule a daily check of Sanctum LST positions or weekly portfolio rebalancing.
 
 ## Available Tools
+
+<img width="732" height="389" alt="Screenshot 2026-05-12 072958" src="https://github.com/user-attachments/assets/1339a42c-47ff-4006-8928-8e43c5ff728c" />
 
 ### Wallet Operations
 
@@ -189,12 +193,6 @@ Example: Schedule a daily check of Sanctum LST positions or weekly portfolio reb
 | Protocol | Tools |
 |----------|-------|
 | **Lulo** | Supply/Withdraw liquidity |
-
-## Supported Blockchains
-
-- **Solana** — SPL tokens, Jupiter DEX, Sanctum LST, Solayer staking, Lulo lending
-- **Ethereum** — ERC-20 tokens, Velora DEX aggregator
-
 
 ## License
 
