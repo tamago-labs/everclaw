@@ -1,56 +1,116 @@
 # Everclaw
 
-**Your Sovereign AI Wallet Operating System for Solana & Ethereum**
-
-[![License](https://img.shields.io/badge/License-BSL-blue.svg)](LICENSE)
-
-Local intelligence. Real on-chain actions. Complete privacy.
+**OpenClaw-Style Local AI Agents for Solana & Ethereum**
 
 ## Overview
 
-Everclaw is a local-first AI Wallet OS powered by Tether's QVAC that lets users manage their entire Solana and Ethereum financial life through natural language and voice — autonomously executing trades, rebalancing portfolios, handling recurring payments, and splitting bills — all while keeping data, keys, and intelligence fully on-device.
+Everclaw transforms your desktop into a complete AI Wallet Operating System for Solana and Ethereum. Through natural language commands, the local AI agent handles everything from portfolio management to on-chain execution — with full transparency and user control.
 
-## Problem
+Powered by Tether's QVAC (for local AI inference) and WDK (for self-custodial wallet operations), Everclaw eliminates the need for AI subscriptions. Your keys, data, and AI reasoning stay entirely on your device.
 
-Crypto users face constant challenges:
+## Highlights
 
-- Monitoring and managing portfolios 24/7 across fragmented dApps
-- Forgetting recurring payments, yield opportunities, or bill splits
-- Switching between dozens of tools and wallets
-- Growing privacy and security concerns when using cloud AI agents with their money and data
+- **QVAC SDK** — Local AI inference on desktop. No subscriptions, fully private, offline-capable.
+- **Supported Models** — Qwen3-1.7B for standard desktop, Qwen3-4B for high-performance PC.
+- **WDK Wallet** — Single wallet for Solana + 20+ chains. Self-custodial, battle-tested.
+- **Curated Tools** — 20+ custom Solana tools (Jupiter, Sanctum, Solayer, Lulo) + WDK official tools.
+- **Workspaces** — OpenClaw-style multi-agent with custom context, rules, identity, and persistent sessions.
 
-Most AI agents today rely on centralized clouds, creating single points of failure and surveillance risks. Everclaw solves this by bringing sovereign, on-device intelligence directly to Solana and Ethereum.
+## Quick Start
 
-## Solution
+### Windows
+Download the installer from the [Releases](https://github.com/tamago-labs/everclaw/releases) page and run the `.exe` file.
 
-Everclaw turns your desktop into a complete AI Wallet Operating System. Users open the app, speak or type a natural language prompt (e.g., "Manage my portfolio with moderate risk and auto-compound yields" or "Send 30 USDC to my girlfriend every Friday"), and the local AI agent handles the rest — from planning to secure on-chain execution — with full transparency and control.
+### Other Platforms
+Clone the repository and build from source:
 
-QVAC powers the entire intelligence layer, enabling true sovereignty: offline capability, private memory, and no data leaving the user's device.
+```bash
+git clone https://github.com/tamago-labs/everclaw
+cd everclaw
+npm install
 
-## How It Works
+# Run preview
+npm start
 
-1. **Install & Setup** — Download the app, create or import your wallet
-2. **Natural Language** — Type or speak your financial intent
-3. **AI Planning** — Everclaw analyzes and plans the optimal action
-4. **On-Chain Execution** — Executes transactions securely with your approval
-5. **Privacy First** — All intelligence stays on your device
+# Build for your platform
+npm run build:unpack
+```
 
-## Features
+### AI Model Selection
+On every startup, the app displays a model selection screen. Choose the AI model that matches your hardware:
 
-- 🤖 **Local AI Agent** — Powered by QVAC for on-device intelligence
-- 🌐 **Multi-Chain Support** — Solana and Ethereum ecosystems
-- 💬 **Natural Language** — Control your finances with plain text or voice
-- 🔐 **Self-Custodial** — Your keys, your coins, always
-- 📊 **Portfolio Management** — Track and rebalance across chains
-- 🔄 **DEX Swaps** — Trade via Jupiter (Solana) and Velora (Ethereum)
-- 🥩 **Liquid Staking** — Sanctum LST support
-- 🏦 **Lending** — Lulo supply and withdraw
-- 💰 **Price Feeds** — Real-time token prices
-- ⚙️ **Modular Tools** — Enable/disable tools based on your needs
+| Model | Requirements | Use Case |
+|-------|--------------|----------|
+| **Qwen3-1.7B** | ~2GB disk, 8GB+ RAM | Standard desktops, tool-calling for Web3 |
+| **Qwen3-4B** | ~4GB disk, 16GB+ RAM | High-performance PCs, complex tasks |
+
+Models are downloaded on first selection and cached locally for subsequent runs.
+
+> **Note:** The application package requires ~4GB for QVAC. AI models add an additional 2-4GB depending on selection.
+
+### Wallet Setup
+After selecting the AI model, you can chat with the agent immediately. For on-chain actions or running autonomous tasks, you'll need a wallet:
+
+1. Click **Setup Wallet** on the welcome card
+2. Choose to **Create New Wallet** or **Import Existing Wallet** (via seed phrase)
+3. Your wallet is secured by WDK SDK — seed phrase is encrypted and stored locally
+4. Access all supported chains: Solana, Ethereum and other EVMs, Bitcoin
+
+> **Note:** No data leaves your device. Wallet keys are always under your control.
+
+### Token Registry
+To help the agent recognize tokens, register tokens in the settings page. Default tokens included: SOL, USDT, USDC. All registered tokens become part of the agent's base knowledge for Web3 operations.
+
+## Curated Tools
+
+Everclaw combines official WDK tools with custom-built Solana DeFi tools for comprehensive Web3 coverage.
+
+### WDK Official Tools
+Secure wallet operations powered by WDK SDK:
+- **Wallet**: Get address, get balance, approve, transfer, send native tokens
+- **Price Feeds**: Real-time token pricing
+
+### Custom Solana Tools
+Since WDK doesn't support Solana DeFi, Everclaw provides custom tools:
+- **Jupiter** — Token swaps on Solana
+- **Sanctum** — Liquid staking (quote/execute swaps, LST info, owned positions)
+- **Solayer** — SOL staking
+- **Lulo** — Supply and withdraw liquidity
+
+### EVM Support
+- **Velora** — Token swaps on Ethereum and other EVMs
+
+## Persistent Workspaces
+
+Inspired by OpenClaw, Everclaw uses a minimal workspace system designed for low-end models. Each agent has its own workspace with 3 markdown files:
+
+- **context.md** — Agent's knowledge base and reference data
+- **core.md** — Behavioral rules and guidelines
+- **identity.md** — Agent's identity and personality
+
+These files are compiled into the system prompt, keeping the AI focused and organized. Multiple agents can be created for different purposes.
+
+### Multi-Session Support
+Each agent supports multiple chat sessions, allowing you to:
+- Maintain separate conversation threads for different tasks
+- Keep history organized across sessions
+- Resume previous conversations anytime
+
+## Automated Tasks
+
+Schedule autonomous AI tasks to run on a cron schedule:
+
+- Create recurring prompts (e.g., "Check my portfolio every 6 hours")
+- Set custom schedules using cron expressions
+- Each task runs in its own session with the agent's full context
+- Enable/disable tasks anytime
+- Run tasks immediately on demand
+
+Example: Schedule a daily check of Sanctum LST positions or weekly portfolio rebalancing.
 
 ## Available Tools
 
-### 🔐 Wallet Operations
+### Wallet Operations
 
 | Tool | Description |
 |------|-------------|
@@ -60,32 +120,32 @@ QVAC powers the entire intelligence layer, enabling true sovereignty: offline ca
 | `transfer` | Transfer tokens |
 | `sendNative` | Send native blockchain tokens |
 
-### 💰 Price Feeds
+### Price Feeds
 
 | Tool | Description |
 |------|-------------|
 | `getPrice` | Get real-time token prices |
 
-### 🔄 Decentralized Exchanges (DEX)
+### Decentralized Exchanges (DEX)
 
 | Chain | DEX | Tools |
 |-------|-----|-------|
 | EVM | Velora | Quote swap, Execute swap |
 | Solana | Jupiter | Quote swap, Execute swap |
 
-### 📊 Liquid Staking (LST)
+### Liquid Staking (LST)
 
 | Protocol | Tools |
 |----------|-------|
 | **Sanctum** | Quote/Execute swaps, Get LST info, Get owned LSTs |
 
-### 🥩 Staking
+### Staking
 
 | Protocol | Tools |
 |----------|-------|
 | **Solayer** | Stake SOL |
 
-### 🏦 Lending
+### Lending
 
 | Protocol | Tools |
 |----------|-------|
@@ -94,66 +154,8 @@ QVAC powers the entire intelligence layer, enabling true sovereignty: offline ca
 ## Supported Blockchains
 
 - **Solana** — SPL tokens, Jupiter DEX, Sanctum LST, Solayer staking, Lulo lending
-- **Ethereum** — ERC-20 tokens, Velora DEX
+- **Ethereum** — ERC-20 tokens, Velora DEX aggregator
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 22+ (recommended Node 24)
-- npm, pnpm, or bun
-
-### Install
-
-```bash
-npm install
-```
-
-### Development
-
-```bash
-npm run dev
-```
-
-### Build
-
-```bash
-# For Windows
-npm run build:win
-
-# For macOS
-npm run build:mac
-
-# For Linux
-npm run build:linux
-```
-
-## Development
-
-### Recommended IDE Setup
-
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-
-### Type Checking
-
-```bash
-# Check all
-npm run typecheck
-
-# Check Node only
-npm run typecheck:node
-
-# Check Web only
-npm run typecheck:web
-```
-
-## Tech Stack
-
-- **Framework**: Electron + Electron Vite
-- **Frontend**: React 19 + TypeScript + TailwindCSS
-- **AI**: Tether QVAC SDK
-- **Blockchain**: Solana Web3.js, Ethers.js compatible
-- **Build**: electron-builder
 
 ## License
 
