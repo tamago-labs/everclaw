@@ -33,7 +33,6 @@ Powered by Tether’s QVAC (local AI inference) and WDK (self-custodial wallet o
 |-------------|-------|
 | **Node.js >= 22.17** | Prefer Node 22+ for QVAC SDK compatibility |
 | **npm >= 10.9** | Package manager |
-| **Total RAM >= 2GB** (recommended 4GB+) | Below 4GB, most LLMs will fail to load |
 
 ### Recommended
 
