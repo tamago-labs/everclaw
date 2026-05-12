@@ -1,6 +1,6 @@
 # Everclaw
 
-**OpenClaw-Style Local AI Agents for Solana & Ethereum**
+**Enables Private Local AI Agents for Solana & Ethereum with OpenClaw-Style Persistence**
 
 ## Demo Videos
 
@@ -9,9 +9,11 @@
 
 ## Overview
 
-Everclaw transforms your desktop into a complete AI Wallet Operating System for Solana and Ethereum. Through natural language commands, the local AI agent handles everything from portfolio management to on-chain execution — with full transparency and user control.
+Everclaw is an Electron-based desktop application that transforms your computer into a local AI wallet operating system for Solana and Ethereum.
 
-Powered by Tether's QVAC (for local AI inference) and WDK (for self-custodial wallet operations), Everclaw eliminates the need for AI subscriptions. Your keys, data, and AI reasoning stay entirely on your device.
+It enables natural language control of local AI agents that can manage portfolios, execute on-chain transactions, and automate Web3 workflows — all with full transparency and user control.
+
+Powered by Tether’s QVAC (local AI inference) and WDK (self-custodial wallet operations), Everclaw runs entirely on-device. There are no AI subscriptions, and your keys, data, and AI reasoning never leave your machine.
 
 ## Highlights
 
@@ -36,9 +38,8 @@ Powered by Tether's QVAC (for local AI inference) and WDK (for self-custodial wa
 | Requirement | When it is needed |
 |-------------|-------------------|
 | **Available RAM >= 2GB** | Needed when loading a model |
-| **GPU acceleration** | Metal (macOS), Vulkan (Linux/Windows) for faster inference |
+| **GPU acceleration** | Metal (macOS), Vulkan (Linux/Windows) |
 | **Free disk >= 5GB** | Model artifacts are typically multi-GB per model |
-
 
 ## Quick Start
 
