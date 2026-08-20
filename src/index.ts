@@ -1,6 +1,7 @@
 import express from 'express'
 import path from 'path'
 import fs from 'fs'
+import crypto from 'crypto'
 import { fileURLToPath } from 'url'
 import { createServer } from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
@@ -349,17 +350,25 @@ async function executeJob(jobId: string, runId: string): Promise<void> {
     }
 
     // 1. Determine the browser objective
+    const vars = job.variables || {}
     let objective: string
     if (job.mode === 'plan') {
       objective = await aiPlanObjective(job)
     } else {
-      objective = renderTemplate(job.objective, job.variables)
+      objective = renderTemplate(job.objective, vars)
+    }
+    // Resolve a target URL: explicit startUrl, else a `url`/`website` variable.
+    const targetUrl = renderTemplate(job.startUrl, vars) || vars.url || vars.website || ''
+    if (!targetUrl) {
+      jobStore.finishRun(jobId, runId, { status: 'error', error: 'No target URL: set the Start URL field or provide a {url} variable.' })
+      jobStore.update(jobId, { lastRun: new Date().toISOString(), lastStatus: 'error' })
+      return
     }
     jobStore.finishRun(jobId, runId, { kaneObjective: objective, aiPrompt: job.prompt })
 
     // 2. Browser stage (kane-cli)
     const kane = await runKane(objective, {
-      url: renderTemplate(job.startUrl, job.variables),
+      url: targetUrl || undefined,
       headless: true,
     })
 
@@ -379,6 +388,21 @@ async function executeJob(jobId: string, runId: string): Promise<void> {
     jobStore.update(jobId, {
       lastRun: new Date().toISOString(),
       lastStatus: kane.status === 'passed' ? 'passed' : 'failed',
+    })
+
+    // 4. Persist the AI-processed result into the job's session (like old everclaw)
+    const ts = new Date().toISOString()
+    sessionStore.addMessage(job.sessionId, {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: `🤖 Job "${job.name}" ran${targetUrl ? `\nURL: ${targetUrl}` : ''}\nTask: ${objective}`,
+      timestamp: ts,
+    })
+    sessionStore.addMessage(job.sessionId, {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: analysis.output || kane.summary || '(no output)',
+      timestamp: new Date().toISOString(),
     })
   } catch (err: any) {
     jobStore.finishRun(jobId, runId, { status: 'error', error: err.message || String(err) })
