@@ -1,6 +1,7 @@
 import { useAI } from '../context/AIContext'
 import { unloadModel } from '../api'
 import { motion } from 'framer-motion'
+import { Crown, Brain, CheckCircle, ArrowRight } from 'lucide-react'
 
 function formatUptime(ms: number): string {
   const sec = Math.floor(ms / 1000)
@@ -51,16 +52,12 @@ export default function PlaceholderPage() {
                   </p>
                 </div>
                 <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ml-4" style={{ background: 'var(--color-bg-elevated)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
-                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                  </svg>
+                  <Crown size={24} className="text-white relative z-10" />
                 </div>
               </div>
               <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-accent-primary)' }}>
                 <span>Get started with a chat</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
+                <ArrowRight size={16} />
               </div>
             </div>
           </motion.div>
@@ -75,13 +72,7 @@ export default function PlaceholderPage() {
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-4">
                 <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'var(--color-bg-elevated)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
-                    <path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93" />
-                    <path d="M8 6a4 4 0 0 1 8 0" />
-                    <path d="M6 12h12" />
-                    <path d="M12 16v4" />
-                    <path d="M8 20h8" />
-                  </svg>
+                  <Brain size={24} className="text-white relative z-10" />
                 </div>
               </div>
               <div className="space-y-3">
@@ -108,7 +99,7 @@ export default function PlaceholderPage() {
           </motion.div>
         </div>
 
-        {/* Placeholder message */}
+        {/* Phase complete card */}
         <motion.div
           className="glass p-6"
           initial={{ opacity: 0, y: 20 }}
@@ -123,9 +114,7 @@ export default function PlaceholderPage() {
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.4 }}
             >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 13l4 4L19 7" />
-              </svg>
+              <CheckCircle size={32} className="text-ev-accent" />
             </motion.div>
             <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>Phase 1 Complete</h3>
             <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>

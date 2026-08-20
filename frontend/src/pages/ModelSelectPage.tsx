@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { Crown, ChevronDown } from 'lucide-react'
 import { useAI } from '../context/AIContext'
 import { fetchModels, loadModelSSE, type ModelEntry } from '../api'
 
@@ -58,9 +59,7 @@ export default function ModelSelectPage() {
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
           >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0F1117" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+            <Crown size={28} className="text-[#0F1117]" />
           </motion.div>
           <motion.h1
             className="text-2xl font-bold text-gradient-white mb-2"
