@@ -110,7 +110,6 @@ export class ModelStore {
   }
 
   private syncBuiltins() {
-    // Add any missing builtins, update metadata for existing ones
     for (const builtin of BUILTIN_MODELS) {
       const existing = this.state.models.find((m) => m.id === builtin.id)
       if (existing) {
@@ -119,9 +118,17 @@ export class ModelStore {
         existing.quantization = builtin.quantization
         existing.sizeBytes = builtin.sizeBytes
       } else {
-        this.state.models.unshift({ ...builtin })
+        this.state.models.push({ ...builtin })
       }
     }
+    // Ensure correct order: builtins by BUILTIN_MODELS order, then customs
+    const builtinOrder = BUILTIN_MODELS.map((b) => b.id)
+    this.state.models.sort((a, b) => {
+      if (a.builtin && b.builtin) return builtinOrder.indexOf(a.id) - builtinOrder.indexOf(b.id)
+      if (a.builtin) return -1
+      if (b.builtin) return 1
+      return 0
+    })
   }
 
   getAll(): ModelEntry[] {
