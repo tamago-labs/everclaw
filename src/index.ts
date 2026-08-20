@@ -22,11 +22,35 @@ import {
 
 import { ModelStore } from './modelStore.js'
 import { SessionStore, type Message } from './sessionStore.js'
+import { kaneStatus, runKane } from './kaneCli.js'
+import { JobStore, type Job } from './jobStore.js'
+
+// --- Log capture (ring buffer served via /api/logs) ---
+const logBuffer: string[] = []
+const LOG_MAX = 500
+
+function captureLog(level: string, args: any[]) {
+  const line = `[${new Date().toISOString()}] [${level}] ${args
+    .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+    .join(' ')}`
+  logBuffer.push(line)
+  if (logBuffer.length > LOG_MAX) logBuffer.shift()
+}
+
+const _origLog = console.log.bind(console)
+console.log = (...args: any[]) => { captureLog('info', args); _origLog(...args) }
+const _origErr = console.error.bind(console)
+console.error = (...args: any[]) => { captureLog('error', args); _origErr(...args) }
+const _origWarn = console.warn.bind(console)
+console.warn = (...args: any[]) => { captureLog('warn', args); _origWarn(...args) }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const server = createServer(app)
 const PORT = Number(process.env.PORT) || 3001
+
+// kane-cli runtime identity (inherited by every spawn)
+process.env.KANE_CLI_USER_AGENT = process.env.KANE_CLI_USER_AGENT || 'everclaw'
 
 app.use(express.json())
 
@@ -46,6 +70,7 @@ function ensureQvacConfig() {
 // --- Stores ---
 const modelStore = new ModelStore(userDataPath)
 const sessionStore = new SessionStore(userDataPath)
+const jobStore = new JobStore(userDataPath)
 
 // --- Registry Sources ---
 const REGISTRY_SOURCES: Record<string, any> = {
@@ -222,6 +247,16 @@ app.post('/api/sessions/:id/clear', (req, res) => {
   res.json({ ok: true })
 })
 
+// --- Logs ---
+app.get('/api/logs', (_req, res) => {
+  res.json({ logs: logBuffer })
+})
+
+app.post('/api/logs/clear', (_req, res) => {
+  logBuffer.length = 0
+  res.json({ ok: true })
+})
+
 app.get('/api/sessions/:id', (req, res) => {
   const session = sessionStore.get(req.params.id)
   if (!session) return res.status(404).json({ error: 'Session not found' })
@@ -233,6 +268,197 @@ app.put('/api/sessions/:id', (req, res) => {
   if (!Array.isArray(messages)) return res.status(400).json({ error: 'Messages array required' })
   sessionStore.saveMessages(req.params.id, messages)
   res.json({ ok: true })
+})
+
+// ============== Jobs (AI-in-the-loop browser automation) ==============
+
+function renderTemplate(tpl: string | undefined, vars: Record<string, any>): string {
+  if (!tpl) return ''
+  return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => (vars && vars[k] != null ? String(vars[k]) : ''))
+}
+
+// Local-model completion (non-streaming, accumulated). Reuses the loaded QVAC model.
+async function aiComplete(history: { role: string; content: string }[]): Promise<{ content: string; thinking: string }> {
+  if (!currentModelId) throw new Error('No model loaded')
+  const run = completion({
+    modelId: currentModelId,
+    history,
+    stream: true,
+    kvCache: true,
+    captureThinking: true,
+  })
+  let content = ''
+  let thinking = ''
+  for await (const event of run.events) {
+    if (event.type === 'thinkingDelta') thinking += event.text
+    else if (event.type === 'contentDelta') content += event.text
+    else if (event.type === 'completionDone') {
+      if (event.stopReason === 'error' && event.error) throw new Error(event.error.message)
+    }
+  }
+  return { content, thinking }
+}
+
+// Plan mode: AI writes the kane-cli objective from the high-level goal.
+async function aiPlanObjective(job: Job): Promise<string> {
+  const system = 'You convert a high-level goal into a single kane-cli browser objective string that an autonomous browser agent can execute. Respond with ONLY the objective text — no quotes, no commentary.'
+  const user = `Goal: ${job.goal || ''}\nVariables: ${JSON.stringify(job.variables)}\nProduce the objective.`
+  const { content } = await aiComplete([
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ])
+  return content.replace(/^["']|["']$/g, '').split('\n')[0].trim()
+}
+
+// Both modes: AI processes the kane result per the job's prompt, with session context.
+async function aiAnalyze(job: Job, kaneResult: { summary: string; oneLiner: string; logs: string[] }): Promise<{ output: string }> {
+  const prior = sessionStore.getMessages(job.sessionId).map((m) => ({ role: m.role, content: m.content }))
+  const kaneText = kaneResult.summary || kaneResult.oneLiner || kaneResult.logs.join('\n').slice(0, 4000)
+  const userContent = `Browser task completed.\n\n--- KANE RESULT ---\n${kaneText}\n\n--- YOUR TASK ---\n${job.prompt}`
+  const history = [
+    { role: 'system', content: 'You are Everclaw, a helpful AI assistant that processes browser-automation results.' },
+    ...prior,
+    { role: 'user', content: userContent },
+  ]
+  const { content } = await aiComplete(history)
+  sessionStore.addMessage(job.sessionId, {
+    id: Date.now().toString(),
+    role: 'user',
+    content: userContent,
+    timestamp: new Date().toISOString(),
+  })
+  sessionStore.addMessage(job.sessionId, {
+    id: (Date.now() + 1).toString(),
+    role: 'assistant',
+    content,
+    timestamp: new Date().toISOString(),
+  })
+  return { output: content }
+}
+
+// Two-stage pipeline: (plan→) kane run → AI analyze. Runs in background.
+async function executeJob(jobId: string, runId: string): Promise<void> {
+  const job = jobStore.get(jobId)
+  if (!job) return
+  try {
+    if (!currentModelId) {
+      jobStore.finishRun(jobId, runId, { status: 'waiting-model', error: 'No model loaded' })
+      jobStore.update(jobId, { lastRun: new Date().toISOString(), lastStatus: 'waiting-model' })
+      return
+    }
+
+    // 1. Determine the browser objective
+    let objective: string
+    if (job.mode === 'plan') {
+      objective = await aiPlanObjective(job)
+    } else {
+      objective = renderTemplate(job.objective, job.variables)
+    }
+    jobStore.finishRun(jobId, runId, { kaneObjective: objective, aiPrompt: job.prompt })
+
+    // 2. Browser stage (kane-cli)
+    const kane = await runKane(objective, {
+      url: renderTemplate(job.startUrl, job.variables),
+      headless: true,
+    })
+
+    // 3. AI analysis stage
+    const analysis = await aiAnalyze(job, kane)
+
+    jobStore.finishRun(jobId, runId, {
+      status: kane.status === 'passed' ? 'passed' : kane.status === 'failed' ? 'failed' : 'error',
+      kaneSummary: kane.summary,
+      kaneDuration: kane.duration,
+      steps: kane.steps,
+      testUrl: kane.testUrl,
+      kaneLogs: kane.logs,
+      aiOutput: analysis.output,
+      aiDuration: 0,
+    })
+    jobStore.update(jobId, {
+      lastRun: new Date().toISOString(),
+      lastStatus: kane.status === 'passed' ? 'passed' : 'failed',
+    })
+  } catch (err: any) {
+    jobStore.finishRun(jobId, runId, { status: 'error', error: err.message || String(err) })
+    jobStore.update(jobId, { lastRun: new Date().toISOString(), lastStatus: 'error' })
+  }
+}
+
+function startJob(jobId: string): string {
+  const runId = jobStore.addRun(jobId, {})
+  executeJob(jobId, runId).catch((e) => console.error('[job] run failed:', e))
+  return runId
+}
+
+// Kane status
+app.get('/api/kane/status', (_req, res) => {
+  const status = kaneStatus()
+  res.json({ ...status, modelLoaded: currentModelId !== null })
+})
+
+// Job CRUD
+app.get('/api/jobs', (_req, res) => {
+  res.json({ jobs: jobStore.list() })
+})
+
+app.post('/api/jobs', (req, res) => {
+  const { name, mode, type, objective, goal, prompt, startUrl, schedule, enabled, variables } = req.body
+  if (!name?.trim() || !prompt?.trim()) return res.status(400).json({ error: 'name and prompt are required' })
+  if (mode === 'plan' && !goal?.trim()) return res.status(400).json({ error: 'goal is required in plan mode' })
+  if (mode === 'pipeline' && !objective?.trim()) return res.status(400).json({ error: 'objective is required in pipeline mode' })
+
+  const session = sessionStore.create(`job: ${name}`)
+  const job = jobStore.create({
+    name: name.trim(),
+    mode: mode === 'plan' ? 'plan' : 'pipeline',
+    type: type || 'custom',
+    objective: objective?.trim(),
+    goal: goal?.trim(),
+    prompt: prompt.trim(),
+    startUrl: startUrl?.trim(),
+    schedule: schedule?.trim() || undefined,
+    enabled: enabled !== false,
+    variables: variables || {},
+    sessionId: session.id,
+  })
+  res.json({ job })
+})
+
+app.put('/api/jobs/:id', (req, res) => {
+  const updated = jobStore.update(req.params.id, req.body)
+  if (!updated) return res.status(404).json({ error: 'Job not found' })
+  res.json({ job: updated })
+})
+
+app.delete('/api/jobs/:id', (req, res) => {
+  const job = jobStore.get(req.params.id)
+  if (!job) return res.status(404).json({ error: 'Job not found' })
+  if (job.sessionId) {
+    try { sessionStore.delete(job.sessionId) } catch {}
+  }
+  jobStore.delete(req.params.id)
+  res.json({ ok: true })
+})
+
+app.post('/api/jobs/:id/toggle', (req, res) => {
+  const job = jobStore.get(req.params.id)
+  if (!job) return res.status(404).json({ error: 'Job not found' })
+  const updated = jobStore.update(req.params.id, { enabled: !job.enabled })
+  res.json({ job: updated })
+})
+
+app.post('/api/jobs/:id/run', (req, res) => {
+  const job = jobStore.get(req.params.id)
+  if (!job) return res.status(404).json({ error: 'Job not found' })
+  const runId = startJob(job.id)
+  res.json({ ok: true, runId, status: 'running' })
+})
+
+app.get('/api/jobs/:id/runs', (req, res) => {
+  const job = jobStore.get(req.params.id)
+  if (!job) return res.status(404).json({ error: 'Job not found' })
+  res.json({ runs: jobStore.getRuns(req.params.id) })
 })
 
 // ============== WebSocket ==============
