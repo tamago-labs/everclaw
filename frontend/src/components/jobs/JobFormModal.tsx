@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { X } from 'lucide-react'
 import { createJob, updateJob, type Job } from '../../api'
 import { JOB_TEMPLATES } from '../../jobTemplates'
@@ -16,6 +16,16 @@ const SCHEDULE_PRESETS = [
   { label: 'Weekly Mon 8am', value: '0 8 * * 1' },
 ]
 
+function extractPlaceholders(...texts: string[]): string[] {
+  const set = new Set<string>()
+  const re = /\{([^}]+)\}/g
+  for (const t of texts) {
+    let m
+    while ((m = re.exec(t)) !== null) set.add(m[1].trim())
+  }
+  return [...set]
+}
+
 export default function JobFormModal({ job, onSaved, onClose }: Props) {
   const editing = !!job
   const [name, setName] = useState('')
@@ -26,9 +36,14 @@ export default function JobFormModal({ job, onSaved, onClose }: Props) {
   const [prompt, setPrompt] = useState('')
   const [startUrl, setStartUrl] = useState('')
   const [schedule, setSchedule] = useState('')
-  const [variables, setVariables] = useState('')
+  const [varValues, setVarValues] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const placeholders = useMemo(
+    () => extractPlaceholders(objective, goal, prompt, startUrl),
+    [objective, goal, prompt, startUrl],
+  )
 
   useEffect(() => {
     if (job) {
@@ -40,7 +55,7 @@ export default function JobFormModal({ job, onSaved, onClose }: Props) {
       setPrompt(job.prompt)
       setStartUrl(job.startUrl || '')
       setSchedule(job.schedule || '')
-      setVariables(Object.keys(job.variables || {}).length ? JSON.stringify(job.variables, null, 2) : '')
+      setVarValues(job.variables || {})
     }
   }, [job])
 
@@ -61,8 +76,8 @@ export default function JobFormModal({ job, onSaved, onClose }: Props) {
     if (mode === 'pipeline' && !objective.trim()) { setError('Objective is required in Pipeline mode'); return }
 
     let vars: Record<string, any> = {}
-    if (variables.trim()) {
-      try { vars = JSON.parse(variables) } catch { setError('Variables must be valid JSON'); return }
+    for (const [k, v] of Object.entries(varValues)) {
+      if (v.trim()) vars[k] = v.trim()
     }
 
     const payload: any = {
@@ -187,10 +202,19 @@ export default function JobFormModal({ job, onSaved, onClose }: Props) {
             ))}
           </div>
 
-          <div>
-            <label className="text-xs font-bold uppercase tracking-[0.15em] font-brand" style={{ color: 'var(--color-text-muted)' }}>Variables (JSON, optional)</label>
-            <textarea className={inputCls} style={inputStyle} rows={2} value={variables} onChange={(e) => setVariables(e.target.value)} placeholder='{"query":"laptop"}' />
-          </div>
+          {placeholders.length > 0 && (
+            <div>
+              <label className="text-xs font-bold uppercase tracking-[0.15em] font-brand" style={{ color: 'var(--color-text-muted)' }}>Template variables</label>
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                {placeholders.map((ph) => (
+                  <div key={ph}>
+                    <label className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{`{${ph}}`}</label>
+                    <input className={inputCls} style={inputStyle} value={varValues[ph] || ''} onChange={(e) => setVarValues((v) => ({ ...v, [ph]: e.target.value }))} placeholder={ph} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="rounded-xl p-3 text-sm" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171' }}>
