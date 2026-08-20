@@ -129,3 +129,54 @@ export function loadModelSSE(
 
   return () => controller.abort()
 }
+
+// ============== Sessions ==============
+
+export interface Session {
+  id: string
+  name: string
+  createdAt: string
+  updatedAt: string
+}
+
+export async function fetchSessions(): Promise<{ sessions: Session[] }> {
+  const res = await fetch(`${API_BASE}/sessions`)
+  return res.json()
+}
+
+export async function createSession(name: string): Promise<Session> {
+  const res = await fetch(`${API_BASE}/sessions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to create session')
+  }
+  return res.json()
+}
+
+export async function deleteSession(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_BASE}/sessions/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to delete session')
+  }
+  return res.json()
+}
+
+export async function getSession(id: string): Promise<{ session: Session; messages: any[] }> {
+  const res = await fetch(`${API_BASE}/sessions/${id}`)
+  if (!res.ok) throw new Error('Session not found')
+  return res.json()
+}
+
+export async function saveSessionMessages(id: string, messages: any[]): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_BASE}/sessions/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages }),
+  })
+  return res.json()
+}
