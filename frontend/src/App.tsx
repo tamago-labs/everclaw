@@ -4,7 +4,9 @@ import DashboardLayout from './components/layout/DashboardLayout'
 import ChatPage from './pages/ChatPage'
 import SessionsPage from './pages/SessionsPage'
 import SettingsPage from './pages/SettingsPage'
-import PlaceholderPage from './pages/PlaceholderPage'
+import OverviewPage from './pages/OverviewPage'
+import JobsPage from './pages/JobsPage'
+import JobDetailPage from './pages/JobDetailPage'
 import ModelSelectPage from './pages/ModelSelectPage'
 import { useAI } from './context/AIContext'
 
@@ -30,7 +32,9 @@ function AppRoutes() {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/sessions" element={<SessionsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/overview" element={<PlaceholderPage />} />
+        <Route path="/overview" element={<OverviewPage />} />
+        <Route path="/jobs" element={<JobsPage />} />
+        <Route path="/jobs/:id" element={<JobDetailPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
