@@ -64,10 +64,37 @@ export default function OverviewPage() {
   return (
     <div className="p-8">
       <div className="max-w-5xl mx-auto">
-        <motion.h1 className="text-2xl font-bold text-gradient-white mb-1" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          Agent Control Center
-        </motion.h1>
-        <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>Local AI + Kane CLI acting on the web.</p>
+        <motion.div
+          className="rounded-2xl p-6 mb-6"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ background: 'linear-gradient(135deg, rgba(0,230,138,0.10), rgba(255,255,255,0.02))', border: '1px solid var(--color-border-subtle)' }}
+        >
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gradient-white">Welcome to EVERCLAW</h1>
+              <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                Your local AI drives Kane CLI to act on the web — monitor runs, scheduled jobs, and AI-processed results here.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full" style={{
+                background: kane && kane.modelLoaded ? 'rgba(0,230,138,0.12)' : 'rgba(255,255,255,0.06)',
+                color: kane && kane.modelLoaded ? '#00E68A' : 'var(--color-text-muted)',
+              }}>
+                {kane && kane.modelLoaded ? <CheckCircle2 size={13} /> : <Clock size={13} />}
+                AI {kane && kane.modelLoaded ? 'ready' : 'loading'}
+              </span>
+              <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full" style={{
+                background: kane && kane.available ? 'rgba(0,230,138,0.12)' : 'rgba(255,255,255,0.06)',
+                color: kane && kane.available ? '#00E68A' : 'var(--color-text-muted)',
+              }}>
+                {kane && kane.available ? <CheckCircle2 size={13} /> : <Clock size={13} />}
+                Kane {kane && kane.available ? 'ready' : 'checking'}
+              </span>
+            </div>
+          </div>
+        </motion.div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className={cardCls} style={cardStyle}>
