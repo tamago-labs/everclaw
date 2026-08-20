@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Plus, Play, Pause, Trash2, RefreshCw, ChevronRight, Loader2 } from 'lucide-react'
-import { fetchJobs, fetchJobRuns, toggleJob, runJob, deleteJob, type Job, type JobStatus } from '../api'
+import { Plus, Play, Trash2, RefreshCw, ChevronRight, Loader2 } from 'lucide-react'
+import { fetchJobs, fetchJobRuns, runJob, deleteJob, type Job, type JobStatus } from '../api'
 import JobFormModal from '../components/jobs/JobFormModal'
 
 function statusPill(status: JobStatus | null): { label: string; bg: string; color: string } {
@@ -42,10 +42,6 @@ export default function JobsPage() {
   }
   useEffect(() => { load() }, [])
 
-  const handleToggle = async (job: Job) => {
-    await toggleJob(job.id)
-    load()
-  }
   const handleRun = async (job: Job) => {
     setRunning(job.id)
     try {
@@ -102,7 +98,7 @@ export default function JobsPage() {
             <div>Name</div>
             <div>Type / Mode</div>
             <div>Status</div>
-            <div>Last / Next</div>
+            <div>Last run</div>
             <div className="text-right">Actions</div>
           </div>
 
@@ -124,7 +120,7 @@ export default function JobsPage() {
               >
                 <div className="min-w-0">
                   <div className="text-sm font-semibold truncate font-mono" style={{ color: 'var(--color-accent-primary)' }}>{job.name}</div>
-                  <div className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>{job.schedule || 'manual only'}</div>
+                  <div className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>{job.mode}</div>
                 </div>
                 <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                   <div className="capitalize">{job.type}</div>
@@ -133,14 +129,8 @@ export default function JobsPage() {
                 <div>
                   <span className="text-xs px-2 py-1 rounded-full" style={{ background: pill.bg, color: pill.color }}>{pill.label}</span>
                 </div>
-                <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  <div>{relative(job.lastRun)}</div>
-                  <div>{job.nextRun ? new Date(job.nextRun).toLocaleString() : '—'}</div>
-                </div>
+                <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{relative(job.lastRun)}</div>
                 <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => handleToggle(job)} className="p-2 rounded-lg transition-all" title={job.enabled ? 'Pause' : 'Enable'} style={{ color: job.enabled ? 'rgba(251,191,36,0.9)' : 'var(--color-text-muted)', background: job.enabled ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.06)' }}>
-                    {job.enabled ? <Pause size={15} /> : <Play size={15} />}
-                  </button>
                   <button onClick={() => handleRun(job)} className="p-2 rounded-lg transition-all" title="Run now" style={{ color: 'var(--color-accent-primary)', background: 'var(--color-accent-primary-dim)' }}>
                     {running === job.id ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
                   </button>

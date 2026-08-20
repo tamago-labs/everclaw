@@ -219,13 +219,10 @@ export interface Job {
   goal?: string
   prompt: string
   startUrl?: string
-  schedule?: string
-  enabled: boolean
   variables: Record<string, any>
   sessionId: string
   createdAt: string
   lastRun: string | null
-  nextRun: string | null
   lastStatus: JobStatus | null
 }
 
@@ -289,11 +286,6 @@ export async function deleteJob(id: string): Promise<{ ok: boolean }> {
     const err = await res.json()
     throw new Error(err.error || 'Failed to delete job')
   }
-  return res.json()
-}
-
-export async function toggleJob(id: string): Promise<{ job: Job }> {
-  const res = await fetch(`${API_BASE}/jobs/${id}/toggle`, { method: 'POST' })
   return res.json()
 }
 

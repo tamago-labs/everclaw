@@ -14,13 +14,10 @@ export interface Job {
   goal?: string
   prompt: string
   startUrl?: string
-  schedule?: string
-  enabled: boolean
   variables: Record<string, any>
   sessionId: string
   createdAt: string
   lastRun: string | null
-  nextRun: string | null
   lastStatus: JobStatus | null
 }
 
@@ -96,13 +93,12 @@ export class JobStore {
     return this.readConfig(id)
   }
 
-  create(data: Omit<Job, 'id' | 'createdAt' | 'lastRun' | 'nextRun' | 'lastStatus'>): Job {
+  create(data: Omit<Job, 'id' | 'createdAt' | 'lastRun' | 'lastStatus'>): Job {
     const job: Job = {
       ...data,
       id: newId('job'),
       createdAt: new Date().toISOString(),
       lastRun: null,
-      nextRun: null,
       lastStatus: null,
     }
     this.writeConfig(job)

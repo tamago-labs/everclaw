@@ -9,14 +9,6 @@ interface Props {
   onClose: () => void
 }
 
-const SCHEDULE_PRESETS = [
-  { label: 'Run once', value: '' },
-  { label: 'Every minute', value: '* * * * *' },
-  { label: 'Hourly', value: '0 * * * *' },
-  { label: 'Daily 9am', value: '0 9 * * *' },
-  { label: 'Weekly Mon 8am', value: '0 8 * * 1' },
-]
-
 function extractPlaceholders(...texts: string[]): string[] {
   const set = new Set<string>()
   const re = /\{([^}]+)\}/g
@@ -36,7 +28,6 @@ export default function JobFormModal({ job, onSaved, onClose }: Props) {
   const [goal, setGoal] = useState('')
   const [prompt, setPrompt] = useState('')
   const [startUrl, setStartUrl] = useState('')
-  const [schedule, setSchedule] = useState('')
   const [varValues, setVarValues] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -57,7 +48,6 @@ export default function JobFormModal({ job, onSaved, onClose }: Props) {
       setGoal(job.goal || '')
       setPrompt(job.prompt)
       setStartUrl(job.startUrl || '')
-      setSchedule(job.schedule || '')
       setVarValues(job.variables || {})
     }
   }, [job])
@@ -68,7 +58,6 @@ export default function JobFormModal({ job, onSaved, onClose }: Props) {
     setObjective(t.objective || '')
     setGoal(t.goal || '')
     setPrompt(t.prompt)
-    setSchedule(t.defaultSchedule)
     if (!name.trim()) setName(t.label)
     if (t.defaultStartUrl) setStartUrl(t.defaultStartUrl)
   }
@@ -90,7 +79,6 @@ export default function JobFormModal({ job, onSaved, onClose }: Props) {
       type,
       prompt: prompt.trim(),
       startUrl: startUrl.trim() || undefined,
-      schedule: schedule.trim() || undefined,
       variables: vars,
     }
     if (mode === 'plan') payload.goal = goal.trim()
@@ -209,19 +197,6 @@ export default function JobFormModal({ job, onSaved, onClose }: Props) {
                   <label className="text-xs font-bold uppercase tracking-[0.15em] font-brand" style={{ color: 'var(--color-text-muted)' }}>Start URL</label>
                   <input className={inputCls} style={inputStyle} value={startUrl} onChange={(e) => setStartUrl(e.target.value)} placeholder="https://..." />
                 </div>
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-[0.15em] font-brand" style={{ color: 'var(--color-text-muted)' }}>Schedule</label>
-                  <input className={inputCls} style={inputStyle} value={schedule} onChange={(e) => setSchedule(e.target.value)} placeholder="Run once" />
-                  {!schedule && <p className="text-[11px] mt-1" style={{ color: 'var(--color-text-muted)' }}>No cron — run manually from the Jobs page.</p>}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {SCHEDULE_PRESETS.map((p) => (
-                  <button key={p.label} type="button" onClick={() => setSchedule(p.value)} className="px-2.5 py-1 rounded-lg text-xs transition-all" style={{ color: schedule === p.value ? '#0F1117' : 'var(--color-text-secondary)', background: schedule === p.value ? 'var(--color-accent-primary)' : 'rgba(255,255,255,0.06)' }}>
-                    {p.label}
-                  </button>
-                ))}
               </div>
 
               {placeholders.length > 0 && (

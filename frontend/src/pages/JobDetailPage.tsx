@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Play, Loader2, ExternalLink } from 'lucide-react'
-import { fetchJobs, fetchJobRuns, runJob, toggleJob, type Job, type JobRun, type JobStatus } from '../api'
+import { fetchJobs, fetchJobRuns, runJob, type Job, type JobRun, type JobStatus } from '../api'
 import JobFormModal from '../components/jobs/JobFormModal'
 
 function statusPill(status: JobStatus | null): { label: string; bg: string; color: string } {
@@ -66,12 +66,6 @@ export default function JobDetailPage() {
       load()
     }
   }
-  const handleToggle = async () => {
-    if (!job) return
-    await toggleJob(job.id)
-    load()
-  }
-
   if (!job) {
     return <div className="p-8 text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading…</div>
   }
@@ -89,9 +83,6 @@ export default function JobDetailPage() {
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-2xl font-bold text-gradient-white font-mono">{job.name}</h1>
           <div className="flex gap-2">
-            <button onClick={handleToggle} className="px-3 py-2 rounded-xl text-xs font-medium transition-all" style={{ color: job.enabled ? 'rgba(251,191,36,0.9)' : 'var(--color-text-muted)', background: job.enabled ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.06)' }}>
-              {job.enabled ? 'Pause' : 'Enable'}
-            </button>
             <button onClick={handleRun} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all" style={{ color: '#0F1117', background: 'var(--color-accent-primary)' }}>
               {running ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />} Run now
             </button>
@@ -101,7 +92,6 @@ export default function JobDetailPage() {
           <span className="px-2 py-0.5 rounded-full" style={{ background: pill.bg, color: pill.color }}>{pill.label}</span>
           <span className="capitalize">{job.type}</span>
           <span>· {job.mode}</span>
-          {job.schedule && <span>· {job.schedule}</span>}
         </div>
 
         {/* Tabs */}
@@ -161,7 +151,6 @@ export default function JobDetailPage() {
             <div className="flex justify-between py-2 border-b" style={{ borderColor: 'var(--color-border-subtle)' }}><span style={{ color: 'var(--color-text-muted)' }}>Mode</span><span style={{ color: 'var(--color-text-primary)' }} className="capitalize">{job.mode}</span></div>
             <div className="flex justify-between py-2 border-b" style={{ borderColor: 'var(--color-border-subtle)' }}><span style={{ color: 'var(--color-text-muted)' }}>{job.mode === 'plan' ? 'Goal' : 'Objective'}</span><span style={{ color: 'var(--color-text-primary)' }}>{job.mode === 'plan' ? job.goal : job.objective}</span></div>
             <div className="flex justify-between py-2 border-b" style={{ borderColor: 'var(--color-border-subtle)' }}><span style={{ color: 'var(--color-text-muted)' }}>Start URL</span><span style={{ color: 'var(--color-text-primary)' }}>{job.startUrl || '—'}</span></div>
-            <div className="flex justify-between py-2 border-b" style={{ borderColor: 'var(--color-border-subtle)' }}><span style={{ color: 'var(--color-text-muted)' }}>Schedule</span><span style={{ color: 'var(--color-text-primary)' }}>{job.schedule || 'manual only'}</span></div>
             <div className="py-2"><span style={{ color: 'var(--color-text-muted)' }}>AI instruction</span><p className="mt-1 text-sm whitespace-pre-wrap" style={{ color: 'var(--color-text-primary)' }}>{job.prompt}</p></div>
             <button onClick={() => setShowEdit(true)} className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold" style={{ color: '#0F1117', background: 'var(--color-accent-primary)' }}>Edit</button>
           </div>

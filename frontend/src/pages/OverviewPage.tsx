@@ -25,17 +25,6 @@ function relative(iso: string | null): string {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
-function until(iso: string | null): string {
-  if (!iso) return '—'
-  const diff = new Date(iso).getTime() - Date.now()
-  if (diff <= 0) return 'due now'
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `in ${mins}m`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `in ${hrs}h`
-  return `in ${Math.floor(hrs / 24)}d`
-}
-
 function formatUptime(seconds: number): string {
   const mins = Math.floor(seconds / 60) % 60
   const hrs = Math.floor(seconds / 3600) % 24
@@ -60,18 +49,12 @@ export default function OverviewPage() {
     fetchJobActivity().then((r) => setActivity(r.runs)).catch(() => setActivity([]))
   }, [])
 
-  const enabled = jobs.filter((j) => j.enabled).length
   const passed = jobs.filter((j) => j.lastStatus === 'passed').length
   const failed = jobs.filter((j) => j.lastStatus === 'failed' || j.lastStatus === 'error').length
   const waiting = jobs.filter((j) => j.lastStatus === 'waiting-model').length
 
   const cardCls = 'rounded-2xl p-5'
   const cardStyle = { background: 'rgba(255,255,255,0.03)', border: '1px solid var(--color-border-subtle)' }
-
-  const nextRuns = jobs
-    .filter((j) => j.enabled && j.nextRun)
-    .sort((a, b) => new Date(a.nextRun!).getTime() - new Date(b.nextRun!).getTime())
-    .slice(0, 6)
 
   return (
     <div className="p-8">
@@ -86,7 +69,7 @@ export default function OverviewPage() {
             <div>
               <h1 className="text-2xl font-bold text-gradient-white">Welcome to EVERCLAW</h1>
               <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                Your local AI drives Kane CLI to act on the web — monitor runs, scheduled jobs, and AI-processed results here.
+                Your local AI drives Kane CLI to act on the web — monitor runs and AI-processed results here.
               </p>
             </div>
             <div className="flex gap-2">
@@ -146,7 +129,6 @@ export default function OverviewPage() {
         <div className="grid grid-cols-4 gap-4 mb-6">
           {[
             { label: 'Jobs', value: jobs.length, color: 'var(--color-text-primary)' },
-            { label: 'Enabled', value: enabled, color: 'rgba(251,191,36,0.9)' },
             { label: 'Passed', value: passed, color: '#00E68A' },
             { label: 'Failed', value: failed + waiting, color: '#F87171' },
           ].map((s) => (
@@ -155,34 +137,6 @@ export default function OverviewPage() {
               <div className="text-xs uppercase tracking-wider mt-1 font-brand" style={{ color: 'var(--color-text-muted)' }}>{s.label}</div>
             </div>
           ))}
-        </div>
-
-        {/* Next runs timeline */}
-        <div className="rounded-2xl overflow-hidden mb-6" style={{ border: '1px solid var(--color-border-subtle)' }}>
-          <div className="flex items-center gap-2 px-5 py-3 text-[11px] font-bold uppercase tracking-[0.15em] font-brand" style={{ background: 'rgba(255,255,255,0.03)', color: 'var(--color-text-muted)' }}>
-            <Clock size={13} /> Next runs
-          </div>
-          {nextRuns.length === 0 ? (
-            <div className="p-6 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>No scheduled jobs enabled. Create a job with a cron schedule.</div>
-          ) : (
-            nextRuns.map((job, i) => (
-              <div
-                key={job.id}
-                className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-white/5"
-                style={{ borderTop: i === 0 ? 'none' : '1px solid var(--color-border-subtle)' }}
-                onClick={() => navigate(`/jobs/${job.id}`)}
-              >
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold font-mono truncate" style={{ color: 'var(--color-accent-primary)' }}>{job.name}</div>
-                  <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{job.schedule}</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(0,230,138,0.12)', color: '#00E68A' }}>{until(job.nextRun)}</span>
-                  <ArrowRight size={15} style={{ color: 'var(--color-text-muted)' }} />
-                </div>
-              </div>
-            ))
-          )}
         </div>
 
         {/* Recent AI results feed */}
@@ -240,7 +194,7 @@ export default function OverviewPage() {
                 >
                   <div className="min-w-0">
                     <div className="text-sm font-semibold font-mono truncate" style={{ color: 'var(--color-accent-primary)' }}>{job.name}</div>
-                    <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{job.mode} · {job.schedule || 'manual'}</div>
+                    <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{job.mode}</div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs px-2 py-1 rounded-full" style={{ background: pill.bg, color: pill.color }}>
