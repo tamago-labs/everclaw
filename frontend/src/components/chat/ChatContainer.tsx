@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
 import { motion } from 'framer-motion'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
-import { getSession } from '../../api'
+import { getSession, clearSessionMessages } from '../../api'
 import ChatHeader from './ChatHeader'
 
 interface Message {
@@ -143,9 +143,23 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
     }))
   }
 
+  const handleClear = async () => {
+    const id = sessionIdRef.current
+    if (!id) return
+    try {
+      await clearSessionMessages(id)
+      setMessages([])
+      setStreamingThinking('')
+      setError(null)
+      assistantContentRef.current = ''
+    } catch (err: any) {
+      setError(err.message || 'Failed to clear conversation')
+    }
+  }
+
   return (
     <div className="flex flex-col h-full" style={{ height: 'calc(100vh - 0px)' }}>
-      <ChatHeader sessionId={sessionId} onSessionChange={onSessionChange} />
+      <ChatHeader sessionId={sessionId} onSessionChange={onSessionChange} onClear={handleClear} />
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -164,11 +178,7 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
 
         {messages.map((msg, i) => {
           const isLast = i === messages.length - 1
-          const hasAssistant = messages.some((m) => m.role === 'assistant')
-          const showThinking =
-            streaming && streamingThinking &&
-            ((msg.role === 'assistant' && isLast) ||
-             (msg.role === 'user' && isLast && !hasAssistant))
+          const showThinking = streaming && streamingThinking && isLast
 
           return (
             <Fragment key={msg.id}>

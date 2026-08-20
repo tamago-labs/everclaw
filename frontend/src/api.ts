@@ -137,6 +137,8 @@ export interface Session {
   name: string
   createdAt: string
   updatedAt: string
+  messageCount?: number
+  default?: boolean
 }
 
 export async function fetchSessions(): Promise<{ sessions: Session[] }> {
@@ -162,6 +164,15 @@ export async function deleteSession(id: string): Promise<{ ok: boolean }> {
   if (!res.ok) {
     const err = await res.json()
     throw new Error(err.error || 'Failed to delete session')
+  }
+  return res.json()
+}
+
+export async function clearSessionMessages(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_BASE}/sessions/${id}/clear`, { method: 'POST' })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to clear session')
   }
   return res.json()
 }

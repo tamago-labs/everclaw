@@ -1,15 +1,16 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ChevronDown, Check } from 'lucide-react'
+import { Plus, ChevronDown, Check, Eraser } from 'lucide-react'
 import { fetchSessions, createSession, type Session } from '../../api'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 
 interface Props {
   sessionId: string | null
   onSessionChange: (id: string) => void
+  onClear?: () => void
 }
 
-export default function ChatHeader({ sessionId, onSessionChange }: Props) {
+export default function ChatHeader({ sessionId, onSessionChange, onClear }: Props) {
   const navigate = useNavigate()
   const [sessions, setSessions] = useState<Session[]>([])
   const [showCreate, setShowCreate] = useState(false)
@@ -112,6 +113,21 @@ export default function ChatHeader({ sessionId, onSessionChange }: Props) {
           <Plus size={14} />
           New Session
         </button>
+
+        {/* Clear conversation (default session only) */}
+        {currentSession?.default && (
+          <button
+            onClick={() => {
+              if (window.confirm('Clear all messages in this conversation?')) onClear?.()
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{ color: 'rgba(251,191,36,0.9)', background: 'rgba(245,158,11,0.12)' }}
+            title="Clear messages"
+          >
+            <Eraser size={14} />
+            Clear
+          </button>
+        )}
       </div>
 
       {showCreate && (

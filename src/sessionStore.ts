@@ -14,6 +14,8 @@ export interface Session {
   name: string
   createdAt: string
   updatedAt: string
+  messageCount?: number
+  default?: boolean
 }
 
 interface SessionDir {
@@ -98,7 +100,14 @@ export class SessionStore {
     try {
       for (const dir of fs.readdirSync(this.basePath)) {
         const info = this.readInfo(dir)
-        if (info) sessions.push(info)
+        if (info) {
+          const messages = this.readMessages(dir)
+          sessions.push({
+            ...info,
+            messageCount: messages.length,
+            default: dir === DEFAULT_SESSION_ID,
+          })
+        }
       }
     } catch {}
     sessions.sort((a, b) => {
@@ -116,7 +125,7 @@ export class SessionStore {
   create(name: string): Session {
     const id = newId()
     const now = new Date().toISOString()
-    const session: Session = { id, name: name.trim(), createdAt: now, updatedAt: now }
+    const session: Session = { id, name: name.trim(), createdAt: now, updatedAt: now, messageCount: 0, default: false }
     this.writeInfo(session)
     this.writeMessages(id, [])
     return session

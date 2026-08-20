@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AIProvider } from './context/AIContext'
 import DashboardLayout from './components/layout/DashboardLayout'
 import ChatPage from './pages/ChatPage'
+import SessionsPage from './pages/SessionsPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 import ModelSelectPage from './pages/ModelSelectPage'
 import { useAI } from './context/AIContext'
@@ -26,6 +27,7 @@ function AppRoutes() {
       <Route element={<DashboardLayout />}>
         <Route path="/" element={<ChatPage />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/sessions" element={<SessionsPage />} />
         <Route path="/overview" element={<PlaceholderPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

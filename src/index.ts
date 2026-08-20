@@ -216,6 +216,12 @@ app.delete('/api/sessions/:id', (req, res) => {
   res.json({ ok: true })
 })
 
+// Clear messages (keeps the session; allowed for the default session)
+app.post('/api/sessions/:id/clear', (req, res) => {
+  sessionStore.clearMessages(req.params.id)
+  res.json({ ok: true })
+})
+
 app.get('/api/sessions/:id', (req, res) => {
   const session = sessionStore.get(req.params.id)
   if (!session) return res.status(404).json({ error: 'Session not found' })
