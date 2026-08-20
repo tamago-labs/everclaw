@@ -307,3 +307,8 @@ export async function fetchJobRuns(id: string): Promise<{ runs: JobRun[] }> {
   if (!res.ok) throw new Error('Job not found')
   return res.json()
 }
+
+export async function fetchJobActivity(): Promise<{ runs: (JobRun & { jobName: string; jobId: string })[] }> {
+  const res = await fetch(`${API_BASE}/jobs/activity`)
+  return res.json()
+}

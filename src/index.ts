@@ -429,6 +429,18 @@ app.get('/api/jobs', (_req, res) => {
   res.json({ jobs: jobStore.list() })
 })
 
+app.get('/api/jobs/activity', (_req, res) => {
+  const limit = 12
+  const all: Array<any> = []
+  for (const job of jobStore.list()) {
+    for (const run of jobStore.getRuns(job.id)) {
+      all.push({ ...run, jobName: job.name, jobId: job.id })
+    }
+  }
+  all.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+  res.json({ runs: all.slice(0, limit) })
+})
+
 app.post('/api/jobs', (req, res) => {
   const { name, mode, type, objective, goal, prompt, startUrl, schedule, enabled, variables } = req.body
   if (!name?.trim() || !prompt?.trim()) return res.status(400).json({ error: 'name and prompt are required' })
