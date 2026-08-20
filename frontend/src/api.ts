@@ -14,11 +14,13 @@ export interface ModelEntry {
   id: string
   name: string
   source: string
-  sourceKind: 'registry' | 'file' | 'https'
-  params: string
-  quantization: string
-  sizeBytes: number
-  description: string
+  sourceKind: 'registry' | 'file' | 'https' | 'http'
+  params?: string
+  quantization?: string
+  sizeBytes?: number
+  description?: string
+  builtin: boolean
+  createdAt: string
 }
 
 export async function fetchAiStatus(): Promise<AiStatus> {
@@ -28,6 +30,32 @@ export async function fetchAiStatus(): Promise<AiStatus> {
 
 export async function fetchModels(): Promise<{ models: ModelEntry[]; config: any }> {
   const res = await fetch(`${API_BASE}/ai/models`)
+  return res.json()
+}
+
+export async function addCustomModel(data: {
+  name: string
+  source: string
+  description?: string
+}): Promise<ModelEntry> {
+  const res = await fetch(`${API_BASE}/ai/models`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to add model')
+  }
+  return res.json()
+}
+
+export async function removeCustomModel(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_BASE}/ai/models/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to remove model')
+  }
   return res.json()
 }
 

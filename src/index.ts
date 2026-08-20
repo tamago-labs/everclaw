@@ -17,6 +17,8 @@ import {
   ModelType,
 } from '@qvac/sdk'
 
+import { ModelStore, type ModelEntry } from './modelStore.js'
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
@@ -24,7 +26,7 @@ const PORT = Number(process.env.PORT) || 3001
 app.use(express.json())
 
 // --- QVAC Config ---
-const userDataPath = path.join(process.env.HOME || process.env.USERPROFILE || '.', '.everclaw-new')
+const userDataPath = path.join(process.env.HOME || process.env.USERPROFILE || '.', '.everclaw')
 const cacheDir = path.join(userDataPath, 'qvac-cache')
 
 function ensureQvacConfig() {
@@ -36,67 +38,16 @@ function ensureQvacConfig() {
   process.env.QVAC_CONFIG_PATH = configPath
 }
 
-// --- Model Registry ---
-interface ModelEntry {
-  id: string
-  name: string
-  source: string
-  sourceKind: 'registry' | 'file' | 'https'
-  params: string
-  quantization: string
-  sizeBytes: number
-  description: string
-}
+// --- Model Store ---
+const modelStore = new ModelStore(userDataPath)
 
+// --- Registry Sources (built-in only) ---
 const REGISTRY_SOURCES: Record<string, any> = {
   'qwen3-1.7b-instruct-q4': QWEN3_1_7B_INST_Q4,
   'qwen3-4b-instruct-q4-k-m': QWEN3_4B_INST_Q4_K_M,
   'gemma4-4b-q4-k-m': GEMMA4_4B_MULTIMODAL_Q4_K_M,
   'gemma4-31b-q4-k-m': GEMMA4_31B_MULTIMODAL_Q4_K_M,
 }
-
-const BUILTIN_MODELS: ModelEntry[] = [
-  {
-    id: 'qwen3-1.7b-instruct-q4',
-    name: 'Qwen 1.7B',
-    source: 'registry://qwen3-1.7b-instruct-q4',
-    sourceKind: 'registry',
-    params: '1.7B',
-    quantization: 'Q4',
-    sizeBytes: 1_056_782_912,
-    description: 'Fast & lightweight. 4-8 GB RAM.',
-  },
-  {
-    id: 'qwen3-4b-instruct-q4-k-m',
-    name: 'Qwen 4B',
-    source: 'registry://qwen3-4b-instruct-q4-k-m',
-    sourceKind: 'registry',
-    params: '4B',
-    quantization: 'Q4_K_M',
-    sizeBytes: 2_497_280_256,
-    description: 'Balanced performance. 8 GB+ RAM.',
-  },
-  {
-    id: 'gemma4-4b-q4-k-m',
-    name: 'Gemma 4B',
-    source: 'registry://gemma4-4b-q4-k-m',
-    sourceKind: 'registry',
-    params: '4B',
-    quantization: 'Q4_K_M',
-    sizeBytes: 5_405_168_384,
-    description: 'Google Gemma 4B. 8-16 GB RAM.',
-  },
-  {
-    id: 'gemma4-31b-q4-k-m',
-    name: 'Gemma 31B',
-    source: 'registry://gemma4-31b-q4-k-m',
-    sourceKind: 'registry',
-    params: '31B',
-    quantization: 'Q4_K_M',
-    sizeBytes: 19_598_488_192,
-    description: 'Google Gemma 31B. 32 GB+ RAM.',
-  },
-]
 
 // --- AI State ---
 let currentModelId: string | null = null
@@ -140,9 +91,30 @@ app.get('/api/ai/status', (_req, res) => {
   })
 })
 
-// List available models
+// List all models (built-in + custom)
 app.get('/api/ai/models', (_req, res) => {
-  res.json({ models: BUILTIN_MODELS, config: activeConfig })
+  res.json({ models: modelStore.getAll(), config: activeConfig })
+})
+
+// Add custom model
+app.post('/api/ai/models', (req, res) => {
+  const { name, source, description } = req.body
+  if (!name?.trim() || !source?.trim()) {
+    res.status(400).json({ error: 'Name and source are required' })
+    return
+  }
+  const entry = modelStore.add({ name, source, description })
+  res.json(entry)
+})
+
+// Remove custom model
+app.delete('/api/ai/models/:id', (req, res) => {
+  const ok = modelStore.remove(req.params.id)
+  if (!ok) {
+    res.status(400).json({ error: 'Cannot remove model (not found or built-in)' })
+    return
+  }
+  res.json({ ok: true })
 })
 
 // Set config
@@ -163,7 +135,7 @@ app.post('/api/ai/load', async (req, res) => {
     return
   }
 
-  const entry = BUILTIN_MODELS.find((m) => m.id === modelId)
+  const entry = modelStore.getById(modelId)
   if (!entry) {
     res.status(400).json({ error: `Unknown model: ${modelId}` })
     return
@@ -195,26 +167,65 @@ app.post('/api/ai/load', async (req, res) => {
   }
 
   try {
-    const modelSrc = REGISTRY_SOURCES[entry.id]
-    if (!modelSrc) {
-      throw new Error(`No registry source for model: ${entry.id}`)
-    }
-
-    sendProgress({ phase: 'loading', percent: 0, message: `Loading ${entry.name}...` })
-
     const requestId = `load-${Date.now()}`
     currentRequestId = requestId
 
-    await loadModel({
-      modelSrc,
-      modelConfig: buildModelConfig(),
-      onProgress: (progress: any) => {
-        loadingProgress = progress
-        sendProgress(progress)
-      },
-    })
+    if (entry.sourceKind === 'registry') {
+      // Registry model
+      const modelSrc = REGISTRY_SOURCES[entry.id]
+      if (!modelSrc) {
+        throw new Error(`No registry source for model: ${entry.id}`)
+      }
+      sendProgress({ phase: 'loading', percent: 0, message: `Loading ${entry.name}...` })
+      await loadModel({
+        modelSrc,
+        modelConfig: buildModelConfig(),
+        onProgress: (progress: any) => {
+          loadingProgress = progress
+          sendProgress(progress)
+        },
+      })
+    } else if (entry.sourceKind === 'file') {
+      // Local .gguf file
+      if (!fs.existsSync(entry.source)) {
+        throw new Error(`File not found: ${entry.source}`)
+      }
+      sendProgress({ phase: 'loading', percent: 0, message: `Loading ${entry.name}...` })
+      await loadModel({
+        modelSrc: entry.source,
+        modelType: ModelType.llamacppCompletion,
+        modelConfig: buildModelConfig(),
+        onProgress: (progress: any) => {
+          loadingProgress = progress
+          sendProgress(progress)
+        },
+      })
+    } else {
+      // HTTPS/HTTP — download then load
+      sendProgress({ phase: 'downloading', percent: 0, message: `Downloading ${entry.name}...` })
+      await downloadAsset({
+        assetSrc: entry.source,
+        onProgress: (progress: any) => {
+          loadingProgress = progress
+          sendProgress({ ...progress, phase: 'downloading' })
+        },
+      })
 
-    if (currentRequestId !== requestId) return // cancelled
+      if (currentRequestId !== requestId) return
+
+      sendProgress({ phase: 'loading', percent: 0, message: `Loading ${entry.name}...` })
+      await loadModel({
+        modelSrc: entry.source,
+        modelType: ModelType.llamacppCompletion,
+        modelConfig: buildModelConfig(),
+        onProgress: (progress: any) => {
+          loadingProgress = progress
+          sendProgress({ ...progress, phase: 'loading' })
+        },
+      })
+    }
+
+    if (currentRequestId !== requestId) return
 
     currentModelId = entry.id
     currentModelName = entry.name
