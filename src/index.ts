@@ -108,18 +108,15 @@ let currentRequestId: string | null = null
 
 interface AiConfig {
   ctx_size: 2048 | 4096 | 8192 | 16384
-  tools: boolean
 }
 
 const activeConfig: AiConfig = {
   ctx_size: 8192,
-  tools: false,
 }
 
 function buildModelConfig() {
   return {
     ctx_size: activeConfig.ctx_size,
-    tools: activeConfig.tools,
   }
 }
 
@@ -150,19 +147,16 @@ app.get('/api/ai/models', (_req, res) => {
 
 // Set config
 app.put('/api/ai/config', (req, res) => {
-  const { ctx_size, tools } = req.body
+  const { ctx_size } = req.body
   if (ctx_size && [2048, 4096, 8192, 16384].includes(ctx_size)) {
     activeConfig.ctx_size = ctx_size
-  }
-  if (typeof tools === 'boolean') {
-    activeConfig.tools = tools
   }
   res.json({ config: activeConfig })
 })
 
 // Load model (SSE progress)
 app.post('/api/ai/load', async (req, res) => {
-  const { modelId, ctx_size, tools } = req.body
+  const { modelId, ctx_size } = req.body
 
   if (isLoading) {
     res.status(409).json({ error: 'Model already loading' })
@@ -177,7 +171,6 @@ app.post('/api/ai/load', async (req, res) => {
 
   // Update config
   if (ctx_size) activeConfig.ctx_size = ctx_size
-  if (typeof tools === 'boolean') activeConfig.tools = tools
 
   // Unload previous if any
   if (currentModelId) {
@@ -284,5 +277,5 @@ if (fs.existsSync(frontendDist)) {
 ensureQvacConfig()
 
 app.listen(PORT, () => {
-  console.log(`\n  🦞 Everclaw-New CLI running at http://localhost:${PORT}\n`)
+  console.log(`\n  🦞 Everclaw CLI running at http://localhost:${PORT}\n`)
 })

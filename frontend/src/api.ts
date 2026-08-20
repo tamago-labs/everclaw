@@ -5,7 +5,7 @@ export interface AiStatus {
   model: string | null
   modelName: string | null
   loadedAt: number | null
-  config: { ctx_size: number; tools: boolean }
+  config: { ctx_size: number }
   isLoading: boolean
   progress: any
 }
@@ -31,11 +31,11 @@ export async function fetchModels(): Promise<{ models: ModelEntry[]; config: any
   return res.json()
 }
 
-export async function setAiConfig(ctx_size?: number, tools?: boolean): Promise<{ config: any }> {
+export async function setAiConfig(ctx_size?: number): Promise<{ config: any }> {
   const res = await fetch(`${API_BASE}/ai/config`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ctx_size, tools }),
+    body: JSON.stringify({ ctx_size }),
   })
   return res.json()
 }
@@ -48,7 +48,6 @@ export async function unloadModel(): Promise<{ ok: boolean }> {
 export function loadModelSSE(
   modelId: string,
   ctx_size: number,
-  tools: boolean,
   onProgress: (data: any) => void,
   onDone: () => void,
   onError: (msg: string) => void,
@@ -58,7 +57,7 @@ export function loadModelSSE(
   fetch(`${API_BASE}/ai/load`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ modelId, ctx_size, tools }),
+    body: JSON.stringify({ modelId, ctx_size }),
     signal: controller.signal,
   }).then(async (res) => {
     if (!res.ok) {

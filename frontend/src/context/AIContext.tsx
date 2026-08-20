@@ -26,7 +26,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
       const s = await fetchAiStatus()
       setStatus(s)
     } catch {
-      setStatus({ loaded: false, model: null, modelName: null, loadedAt: null, config: { ctx_size: 8192, tools: false }, isLoading: false, progress: null })
+      setStatus({ loaded: false, model: null, modelName: null, loadedAt: null, config: { ctx_size: 8192 }, isLoading: false, progress: null })
     } finally {
       setLoading(false)
     }

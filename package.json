@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@qvac/sdk": "^0.13.5",
+    "concurrently": "^10.0.5",
     "express": "^4.21.0",
     "zod": "^3.24.0"
   },

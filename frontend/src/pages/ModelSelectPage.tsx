@@ -12,7 +12,6 @@ export default function ModelSelectPage() {
   const [models, setModels] = useState<ModelEntry[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [ctxSize, setCtxSize] = useState(8192)
-  const [tools, setTools] = useState(false)
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
@@ -32,7 +31,6 @@ export default function ModelSelectPage() {
     loadModelSSE(
       selectedId,
       ctxSize,
-      tools,
       (data) => setProgress(data),
       async () => {
         setLoading(false)
@@ -49,142 +47,117 @@ export default function ModelSelectPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8">
-      <div className="w-full max-w-5xl glass p-8">
+      <div className="w-full max-w-[520px]">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white mb-1">🦞 Everclaw-New</h1>
-          <p className="text-white/40 text-sm">Select an AI model to get started</p>
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-ev-accent flex items-center justify-center mx-auto mb-4" style={{ boxShadow: '0 0 20px rgba(0, 230, 138, 0.4)' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0F1117" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gradient-white mb-2">Welcome</h1>
+          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Choose a model to get started</p>
         </div>
 
-        <div className="flex gap-6">
-          {/* Left: Model grid */}
-          <div className="flex-[3]">
-            <div className="grid grid-cols-2 gap-3">
-              {models.map((model) => (
+        {/* Model cards */}
+        <div className="space-y-3 mb-6">
+          {models.map((model, i) => (
+            <button
+              key={model.id}
+              disabled={loading}
+              onClick={() => setSelectedId(model.id)}
+              className="glass w-full text-left p-5 transition-all duration-200 cursor-pointer"
+              style={{
+                borderColor: selectedId === model.id ? 'rgba(0, 230, 138, 0.5)' : undefined,
+                animationDelay: `${i * 100}ms`,
+              }}
+            >
+              <div className="relative z-10 flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="font-semibold text-sm mb-1.5" style={{ color: 'var(--color-text-primary)' }}>
+                    {model.name}
+                  </div>
+                  <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    {model.description}
+                  </div>
+                </div>
+                <div className="text-xs px-2.5 py-1 rounded-full ml-3 shrink-0" style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--color-text-secondary)' }}>
+                  {model.params}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Config panel */}
+        <div className="glass p-5 mb-6">
+          <div className="relative z-10">
+            <label className="text-xs font-medium block mb-2" style={{ color: 'var(--color-text-muted)' }}>Context Size</label>
+            <div className="flex gap-2">
+              {[2048, 4096, 8192, 16384].map((size) => (
                 <button
-                  key={model.id}
+                  key={size}
                   disabled={loading}
-                  onClick={() => setSelectedId(model.id)}
-                  className={`text-left p-4 rounded-xl border transition-all duration-200 ${
-                    selectedId === model.id
-                      ? 'border-accent-primary bg-accent-glow'
-                      : 'border-white/8 bg-white/[0.02] hover:border-white/15'
-                  } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  onClick={() => setCtxSize(size)}
+                  className="flex-1 py-2 text-xs rounded-xl border transition-all font-medium"
+                  style={{
+                    borderColor: ctxSize === size ? 'rgba(0, 230, 138, 0.5)' : 'var(--color-border-default)',
+                    background: ctxSize === size ? 'var(--color-accent-primary-dim)' : 'transparent',
+                    color: ctxSize === size ? 'var(--color-accent-primary)' : 'var(--color-text-muted)',
+                  }}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-white">{model.name}</span>
-                    <span className="text-xs text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
-                      {model.params}
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/40 mb-2">{model.description}</p>
-                  <div className="flex items-center gap-2 text-xs text-white/30">
-                    <span>{model.quantization}</span>
-                    <span>·</span>
-                    <span>{formatBytes(model.sizeBytes)}</span>
-                  </div>
+                  {size >= 1024 ? `${size / 1024}K` : size}
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Right: Config + Load */}
-          <div className="flex-[2] space-y-4">
-            {/* Config */}
-            <div className="glass p-4 space-y-4">
-              <h3 className="text-sm font-medium text-white/60">Configuration</h3>
-
-              {/* Context size */}
-              <div>
-                <label className="text-xs text-white/40 block mb-1.5">Context Size</label>
-                <div className="flex gap-1.5">
-                  {[2048, 4096, 8192, 16384].map((size) => (
-                    <button
-                      key={size}
-                      disabled={loading}
-                      onClick={() => setCtxSize(size)}
-                      className={`flex-1 py-1.5 text-xs rounded-lg border transition-all ${
-                        ctxSize === size
-                          ? 'border-accent-primary bg-accent-glow text-white'
-                          : 'border-white/8 text-white/40 hover:border-white/15'
-                      }`}
-                    >
-                      {size >= 1024 ? `${size / 1024}K` : size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tools toggle */}
-              <div>
-                <label className="text-xs text-white/40 block mb-1.5">Tool Calling</label>
-                <div className="flex gap-1.5">
-                  {[
-                    { label: 'Off', value: false },
-                    { label: 'On', value: true },
-                  ].map((opt) => (
-                    <button
-                      key={opt.label}
-                      disabled={loading}
-                      onClick={() => setTools(opt.value)}
-                      className={`flex-1 py-1.5 text-xs rounded-lg border transition-all ${
-                        tools === opt.value
-                          ? 'border-accent-primary bg-accent-glow text-white'
-                          : 'border-white/8 text-white/40 hover:border-white/15'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Load status */}
-            {progress && progress.phase !== 'done' && (
-              <div className="glass p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/60">
-                    {selected?.name || 'Loading...'}
-                  </span>
-                  <span className="text-xs text-white/30">{progress.phase}</span>
-                </div>
-                <div className="w-full bg-white/5 rounded-full h-1.5">
-                  <div
-                    className="bg-accent-primary h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: `${progress.percent || 0}%` }}
-                  />
-                </div>
-                <p className="text-xs text-white/30">{progress.message}</p>
-              </div>
-            )}
-
-            {/* Error */}
-            {error && (
-              <div className="glass p-4 border-red-500/30">
-                <p className="text-sm text-red-400">{error}</p>
-              </div>
-            )}
-
-            {/* Load button */}
-            <button
-              onClick={handleLoad}
-              disabled={!selectedId || loading}
-              className="btn-primary w-full"
-            >
-              {loading ? 'Loading...' : selected ? `Load ${selected.name}` : 'Select a model'}
-            </button>
-
-            {loading && (
-              <button
-                onClick={() => window.location.reload()}
-                className="btn-ghost w-full text-sm"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
         </div>
+
+        {/* Progress */}
+        {progress && progress.phase !== 'done' && (
+          <div className="glass p-5 mb-6">
+            <div className="relative z-10 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                  {selected?.name || 'Loading...'}
+                </span>
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  {progress.phase === 'downloading' ? 'Downloading...' : 'Loading into memory...'}
+                </span>
+              </div>
+              <div className="w-full rounded-full h-1.5" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <div
+                  className="h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${progress.percent || 0}%`, background: 'var(--color-accent-primary)' }}
+                />
+              </div>
+              {progress.message && (
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{progress.message}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="p-3 rounded-xl text-sm mb-6" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#F87171' }}>
+            {error}
+          </div>
+        )}
+
+        {/* Load button */}
+        <button
+          onClick={handleLoad}
+          disabled={!selectedId || loading}
+          className="btn-primary w-full"
+        >
+          {loading ? 'Loading...' : selected ? `Load ${selected.name}` : 'Select a model'}
+        </button>
+
+        {/* Download info */}
+        <p className="text-center text-xs mt-4" style={{ color: 'var(--color-accent-primary)', opacity: 0.7 }}>
+          Initial download required. Subsequent uses will load from local cache.
+        </p>
       </div>
     </div>
   )
