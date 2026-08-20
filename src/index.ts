@@ -653,5 +653,7 @@ startKaneStatusPolling()
 startScheduler()
 
 server.listen(PORT, () => {
-  console.log(`\n  🦞 Everclaw CLI running at http://localhost:${PORT}\n`)
+  console.log(`\n  🦞 Everclaw is running`)
+  console.log(`     Web UI:  http://localhost:${PORT}`)
+  console.log(`     API:     http://localhost:${PORT}/api\n`)
 })
