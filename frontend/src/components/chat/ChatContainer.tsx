@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Fragment } from 'react'
 import { motion } from 'framer-motion'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
 import { getSession } from '../../api'
@@ -27,7 +27,7 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const assistantContentRef = useRef('')
   const sessionIdRef = useRef(sessionId)
-  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>()
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const mountedRef = useRef(true)
 
   useEffect(() => { sessionIdRef.current = sessionId }, [sessionId])
@@ -162,45 +162,54 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
           </div>
         )}
 
-        {messages.map((msg) => (
-          <motion.div
-            key={msg.id}
-            className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: msg.role === 'user' ? 'var(--color-accent-primary)' : 'rgba(255,255,255,0.1)' }}
-            >
-              {msg.role === 'user'
-                ? <User size={16} className="text-[#0F1117]" />
-                : <Bot size={16} className="text-white/70" />
-              }
-            </div>
-            <div
-              className="rounded-2xl px-4 py-3 max-w-[80%]"
-              style={{
-                background: msg.role === 'user' ? 'var(--color-accent-primary)' : 'rgba(255,255,255,0.05)',
-                color: msg.role === 'user' ? '#0F1117' : 'var(--color-text-primary)',
-              }}
-            >
-              <p className="whitespace-pre-wrap break-words text-sm">{msg.content}</p>
-            </div>
-          </motion.div>
-        ))}
+        {messages.map((msg, i) => {
+          const isLast = i === messages.length - 1
+          const hasAssistant = messages.some((m) => m.role === 'assistant')
+          const showThinking =
+            streaming && streamingThinking &&
+            ((msg.role === 'assistant' && isLast) ||
+             (msg.role === 'user' && isLast && !hasAssistant))
 
-        {streamingThinking && (
-          <div className="ml-11">
-            <div
-              className="rounded-xl p-3 text-xs italic whitespace-pre-wrap"
-              style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', color: 'rgba(251, 191, 36, 0.8)' }}
-            >
-              {streamingThinking}
-            </div>
-          </div>
-        )}
+          return (
+            <Fragment key={msg.id}>
+              {showThinking && (
+                <div className="ml-11">
+                  <div
+                    className="rounded-xl p-3 text-xs italic whitespace-pre-wrap"
+                    style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', color: 'rgba(251, 191, 36, 0.8)' }}
+                  >
+                    {streamingThinking}
+                  </div>
+                </div>
+              )}
+              <motion.div
+                className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: msg.role === 'user' ? 'var(--color-accent-primary)' : 'rgba(255,255,255,0.1)' }}
+                >
+                  {msg.role === 'user'
+                    ? <User size={16} className="text-[#0F1117]" />
+                    : <Bot size={16} className="text-white/70" />
+                  }
+                </div>
+                <div
+                  className="rounded-2xl px-4 py-3 max-w-[80%]"
+                  style={{
+                    background: msg.role === 'user' ? 'var(--color-accent-primary)' : 'rgba(255,255,255,0.05)',
+                    color: msg.role === 'user' ? '#0F1117' : 'var(--color-text-primary)',
+                  }}
+                >
+                  <p className="whitespace-pre-wrap break-words text-sm">{msg.content}</p>
+                </div>
+              </motion.div>
+            </Fragment>
+          )
+        })}
 
         {streaming && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
           <div className="flex gap-3">

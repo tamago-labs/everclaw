@@ -29,12 +29,30 @@ function nameToSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
+export const DEFAULT_SESSION_ID = 'main'
+
 export class SessionStore {
   private basePath: string
 
   constructor(userDataPath: string) {
     this.basePath = path.join(userDataPath, 'sessions')
     fs.mkdirSync(this.basePath, { recursive: true })
+    this.ensureDefault()
+  }
+
+  private ensureDefault() {
+    const dir = this.sessionDir(DEFAULT_SESSION_ID)
+    fs.mkdirSync(dir, { recursive: true })
+    const infoPath = this.infoPath(DEFAULT_SESSION_ID)
+    const now = new Date().toISOString()
+    const existing = this.readInfo(DEFAULT_SESSION_ID)
+    if (!existing || existing.name !== 'default') {
+      this.writeInfo({ id: DEFAULT_SESSION_ID, name: 'default', createdAt: existing?.createdAt || now, updatedAt: now })
+    }
+    const msgPath = this.messagesPath(DEFAULT_SESSION_ID)
+    if (!fs.existsSync(msgPath)) {
+      this.writeMessages(DEFAULT_SESSION_ID, [])
+    }
   }
 
   private sessionDir(id: string): string {
@@ -83,7 +101,11 @@ export class SessionStore {
         if (info) sessions.push(info)
       }
     } catch {}
-    sessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    sessions.sort((a, b) => {
+      if (a.id === DEFAULT_SESSION_ID) return -1
+      if (b.id === DEFAULT_SESSION_ID) return 1
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    })
     return sessions
   }
 
@@ -101,10 +123,20 @@ export class SessionStore {
   }
 
   delete(id: string): boolean {
+    if (id === DEFAULT_SESSION_ID) return false
     const dir = this.sessionDir(id)
     if (!fs.existsSync(dir)) return false
     fs.rmSync(dir, { recursive: true, force: true })
     return true
+  }
+
+  clearMessages(id: string): void {
+    this.writeMessages(id, [])
+    const info = this.readInfo(id)
+    if (info) {
+      info.updatedAt = new Date().toISOString()
+      this.writeInfo(info)
+    }
   }
 
   getMessages(id: string): Message[] {

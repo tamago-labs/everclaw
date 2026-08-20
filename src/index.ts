@@ -133,7 +133,7 @@ app.post('/api/ai/load', async (req, res) => {
   if (ctx_size) activeConfig.ctx_size = ctx_size
 
   if (currentModelId) {
-    try { await unloadModel() } catch {}
+    try { await unloadModel({ modelId: currentModelId }) } catch {}
     currentModelId = null
     currentModelName = null
     loadedAt = null
@@ -149,25 +149,27 @@ app.post('/api/ai/load', async (req, res) => {
     const requestId = `load-${Date.now()}`
     currentRequestId = requestId
 
+    let loadedModelId: string
+
     if (entry.sourceKind === 'registry') {
       const modelSrc = REGISTRY_SOURCES[entry.id]
       if (!modelSrc) throw new Error(`No registry source: ${entry.id}`)
       send({ phase: 'loading', percent: 0, message: `Loading ${entry.name}...` })
-      await loadModel({ modelSrc, modelConfig: buildModelConfig(), onProgress: (p: any) => { loadingProgress = p; send(p) } })
+      loadedModelId = await loadModel({ modelSrc, modelConfig: buildModelConfig(), onProgress: (p: any) => { loadingProgress = p; send(p) } })
     } else if (entry.sourceKind === 'file') {
       if (!fs.existsSync(entry.source)) throw new Error(`File not found: ${entry.source}`)
       send({ phase: 'loading', percent: 0, message: `Loading ${entry.name}...` })
-      await loadModel({ modelSrc: entry.source, modelType: ModelType.llamacppCompletion, modelConfig: buildModelConfig(), onProgress: (p: any) => { loadingProgress = p; send(p) } })
+      loadedModelId = await loadModel({ modelSrc: entry.source, modelType: ModelType.llamacppCompletion, modelConfig: buildModelConfig(), onProgress: (p: any) => { loadingProgress = p; send(p) } })
     } else {
       send({ phase: 'downloading', percent: 0, message: `Downloading ${entry.name}...` })
       await downloadAsset({ assetSrc: entry.source, onProgress: (p: any) => { loadingProgress = p; send({ ...p, phase: 'downloading' }) } })
       if (currentRequestId !== requestId) return
       send({ phase: 'loading', percent: 0, message: `Loading ${entry.name}...` })
-      await loadModel({ modelSrc: entry.source, modelType: ModelType.llamacppCompletion, modelConfig: buildModelConfig(), onProgress: (p: any) => { loadingProgress = p; send({ ...p, phase: 'loading' }) } })
+      loadedModelId = await loadModel({ modelSrc: entry.source, modelType: ModelType.llamacppCompletion, modelConfig: buildModelConfig(), onProgress: (p: any) => { loadingProgress = p; send({ ...p, phase: 'loading' }) } })
     }
 
     if (currentRequestId !== requestId) return
-    currentModelId = entry.id
+    currentModelId = loadedModelId
     currentModelName = entry.name
     loadedAt = Date.now()
     isLoading = false
@@ -185,7 +187,7 @@ app.post('/api/ai/load', async (req, res) => {
 // Unload
 app.post('/api/ai/unload', async (_req, res) => {
   if (!currentModelId) return res.status(400).json({ error: 'No model loaded' })
-  try { await unloadModel(); currentModelId = null; currentModelName = null; loadedAt = null; res.json({ ok: true }) }
+  try { await unloadModel({ modelId: currentModelId }); currentModelId = null; currentModelName = null; loadedAt = null; res.json({ ok: true }) }
   catch (err: any) { res.status(500).json({ error: err.message }) }
 })
 
@@ -208,6 +210,7 @@ app.post('/api/sessions', (req, res) => {
 })
 
 app.delete('/api/sessions/:id', (req, res) => {
+  if (req.params.id === 'main') return res.status(400).json({ error: 'CANNOT_DELETE_PINNED' })
   const ok = sessionStore.delete(req.params.id)
   if (!ok) return res.status(404).json({ error: 'Session not found' })
   res.json({ ok: true })
@@ -249,32 +252,43 @@ wss.on('connection', (ws, req) => {
           return
         }
 
-        // Build messages array for QVAC
-        const messages = [
+        // Build history array for QVAC
+        const qvacHistory = [
           { role: 'system' as const, content: 'You are Everclaw, a helpful AI assistant. Be concise and helpful.' },
           ...(history || []).map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
           { role: 'user' as const, content: message },
         ]
 
         try {
-          const result = await completion({
+          const run = completion({
             modelId: currentModelId,
-            messages,
+            history: qvacHistory,
             stream: true,
             kvCache: true,
             captureThinking: true,
           })
 
-          for await (const event of result.events) {
+          let assistantContent = ''
+          let thinkingContent = ''
+
+          for await (const event of run.events) {
             if (ws.readyState !== WebSocket.OPEN) break
 
             if (event.type === 'thinkingDelta') {
+              thinkingContent += event.text
               ws.send(JSON.stringify({ type: 'thinking', text: event.text }))
             } else if (event.type === 'contentDelta') {
-              ws.send(JSON.stringify({ type: 'token', text: event.text }))
+              let text = event.text
+              if (assistantContent.length === 0) {
+                text = text.replace(/^[\s\n]+/, '')
+              }
+              if (text) {
+                assistantContent += text
+                ws.send(JSON.stringify({ type: 'token', text }))
+              }
             } else if (event.type === 'completionDone') {
-              if (event.error) {
-                ws.send(JSON.stringify({ type: 'error', message: event.error }))
+              if (event.stopReason === 'error' && event.error) {
+                ws.send(JSON.stringify({ type: 'error', message: event.error.message }))
               }
             }
           }
@@ -289,16 +303,12 @@ wss.on('connection', (ws, req) => {
             }
             sessionStore.addMessage(sessionId, userMsg)
 
-            // Get the accumulated response from history
-            const assistantContent = history && history.length > 0
-              ? history.filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('')
-              : ''
-
             if (assistantContent) {
               const assistantMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
                 content: assistantContent,
+                thinking: thinkingContent || undefined,
                 timestamp: new Date().toISOString(),
               }
               sessionStore.addMessage(sessionId, assistantMsg)
