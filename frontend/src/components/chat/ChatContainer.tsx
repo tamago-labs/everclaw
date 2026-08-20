@@ -47,8 +47,9 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
 
   // Connect WebSocket
   useEffect(() => {
+    const wsHost = import.meta.env.DEV ? 'localhost:3001' : window.location.host
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`)
+    const ws = new WebSocket(`${protocol}//${wsHost}/ws`)
     wsRef.current = ws
 
     ws.onopen = () => {

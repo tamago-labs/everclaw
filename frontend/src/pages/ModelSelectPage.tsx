@@ -285,15 +285,37 @@ export default function ModelSelectPage() {
           {loading ? 'Loading...' : selected ? `Load ${selected.name}` : 'Select a model'}
         </motion.button>
 
-        <motion.p
-          className="text-center text-xs mt-4"
-          style={{ color: 'var(--color-accent-primary)', opacity: 0.7 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.7 }}
-          transition={{ delay: 0.7 }}
-        >
-          Initial download required. Subsequent uses will load from local cache.
-        </motion.p>
+        {/* Download estimate */}
+        {selected && !loading && (
+          <motion.div
+            className="mt-4 text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+          >
+            {selected.sourceKind === 'registry' || selected.sourceKind === 'https' ? (
+              <div className="space-y-1">
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  {selected.sizeBytes
+                    ? `~${(selected.sizeBytes / 1024 / 1024 / 1024).toFixed(1)} GB download`
+                    : 'Download required'
+                  }
+                  {' · '}First run takes{' '}
+                  {selected.sizeBytes && selected.sizeBytes < 2e9 ? '2-5 min' :
+                   selected.sizeBytes && selected.sizeBytes < 6e9 ? '5-10 min' :
+                   '15-30 min'}
+                </p>
+                <p className="text-xs" style={{ color: 'var(--color-accent-primary)', opacity: 0.6 }}>
+                  Cached locally after first download
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                Local file · Loads instantly
+              </p>
+            )}
+          </motion.div>
+        )}
       </motion.div>
     </div>
   )
