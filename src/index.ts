@@ -22,7 +22,7 @@ import {
 
 import { ModelStore } from './modelStore.js'
 import { SessionStore, type Message } from './sessionStore.js'
-import { kaneStatus, runKane } from './kaneCli.js'
+import { getKaneStatus, startKaneStatusPolling, runKane } from './kaneCli.js'
 import { JobStore, type Job } from './jobStore.js'
 import { shouldRunNow, computeNextRun } from './cron.js'
 
@@ -420,7 +420,7 @@ function startScheduler() {
 
 // Kane status
 app.get('/api/kane/status', (_req, res) => {
-  const status = kaneStatus()
+  const status = getKaneStatus()
   res.json({
     ...status,
     modelLoaded: currentModelId !== null,
@@ -624,6 +624,7 @@ if (fs.existsSync(frontendDist)) {
 // ============== Start ==============
 
 ensureQvacConfig()
+startKaneStatusPolling()
 startScheduler()
 
 server.listen(PORT, () => {
