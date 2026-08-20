@@ -1,57 +1,26 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Boxes, Bot, CheckCircle2, XCircle, Clock, ArrowRight, Sparkles } from 'lucide-react'
-import { fetchKaneStatus, fetchJobs, fetchJobActivity, type Job, type JobRun, type JobStatus } from '../api'
+import { Boxes, Bot, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { fetchKaneStatus } from '../api'
 
-function statusPill(status: JobStatus | null): { bg: string; color: string } {
-  switch (status) {
-    case 'running': return { bg: 'rgba(245,158,11,0.12)', color: 'rgba(251,191,36,0.9)' }
-    case 'passed': return { bg: 'rgba(0,230,138,0.12)', color: '#00E68A' }
-    case 'failed': case 'error': return { bg: 'rgba(239,68,68,0.12)', color: '#F87171' }
-    case 'waiting-model': return { bg: 'rgba(255,255,255,0.06)', color: 'var(--color-text-muted)' }
-    default: return { bg: 'rgba(255,255,255,0.06)', color: 'var(--color-text-muted)' }
-  }
-}
-
-function relative(iso: string | null): string {
-  if (!iso) return '—'
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
-}
-
-function formatUptime(seconds: number): string {
-  const mins = Math.floor(seconds / 60) % 60
-  const hrs = Math.floor(seconds / 3600) % 24
-  const days = Math.floor(seconds / 86400)
-  const parts: string[] = []
-  if (days > 0) parts.push(`${days}d`)
-  if (hrs > 0) parts.push(`${hrs}h`)
-  if (mins > 0) parts.push(`${mins}m`)
-  if (parts.length === 0) parts.push('<1m')
-  return parts.join(' ')
+function StatusRow({ icon, label, value }: { icon: boolean; label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+        {icon ? <CheckCircle2 size={14} style={{ color: '#00E68A' }} /> : <XCircle size={14} style={{ color: '#F87171' }} />}
+        {label}
+      </span>
+      <span style={{ color: 'var(--color-text-muted)' }}>{value || (icon ? 'yes' : 'no')}</span>
+    </div>
+  )
 }
 
 export default function OverviewPage() {
   const [kane, setKane] = useState<any>(null)
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [activity, setActivity] = useState<(JobRun & { jobName: string; jobId: string })[]>([])
-  const navigate = useNavigate()
 
   useEffect(() => {
     fetchKaneStatus().then(setKane).catch(() => setKane(null))
-    fetchJobs().then((r) => setJobs(r.jobs)).catch(() => setJobs([]))
-    fetchJobActivity().then((r) => setActivity(r.runs)).catch(() => setActivity([]))
   }, [])
-
-  const passed = jobs.filter((j) => j.lastStatus === 'passed').length
-  const failed = jobs.filter((j) => j.lastStatus === 'failed' || j.lastStatus === 'error').length
-  const waiting = jobs.filter((j) => j.lastStatus === 'waiting-model').length
 
   const cardCls = 'rounded-2xl p-5'
   const cardStyle = { background: 'rgba(255,255,255,0.03)', border: '1px solid var(--color-border-subtle)' }
@@ -69,7 +38,7 @@ export default function OverviewPage() {
             <div>
               <h1 className="text-2xl font-bold text-gradient-white">Welcome to EVERCLAW</h1>
               <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                Your local AI drives Kane CLI to act on the web — monitor runs and AI-processed results here.
+                Your local AI, with Kane CLI ready to act on the web when you need it.
               </p>
             </div>
             <div className="flex gap-2">
@@ -118,108 +87,19 @@ export default function OverviewPage() {
                 <span style={{ color: 'var(--color-text-secondary)' }}>Model</span>
                 <span className="font-mono truncate max-w-[140px]" style={{ color: 'var(--color-text-primary)' }}>{kane?.modelName || '—'}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span style={{ color: 'var(--color-text-secondary)' }}>Uptime</span>
-                <span style={{ color: 'var(--color-text-primary)' }}>{kane?.uptime != null ? formatUptime(kane.uptime) : '—'}</span>
-              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          {[
-            { label: 'Jobs', value: jobs.length, color: 'var(--color-text-primary)' },
-            { label: 'Passed', value: passed, color: '#00E68A' },
-            { label: 'Failed', value: failed + waiting, color: '#F87171' },
-          ].map((s) => (
-            <div key={s.label} className={cardCls} style={cardStyle}>
-              <div className="text-3xl font-bold" style={{ color: s.color }}>{s.value}</div>
-              <div className="text-xs uppercase tracking-wider mt-1 font-brand" style={{ color: 'var(--color-text-muted)' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Recent AI results feed */}
-        <div className="rounded-2xl overflow-hidden mb-6" style={{ border: '1px solid var(--color-border-subtle)' }}>
-          <div className="flex items-center gap-2 px-5 py-3 text-[11px] font-bold uppercase tracking-[0.15em] font-brand" style={{ background: 'rgba(255,255,255,0.03)', color: 'var(--color-text-muted)' }}>
-            <Sparkles size={13} /> Recent AI results
-          </div>
-          {activity.length === 0 ? (
-            <div className="p-6 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>No runs yet. Execute a job to see AI-processed results here.</div>
-          ) : (
-            activity.map((run, i) => {
-              const pill = statusPill(run.status)
-              return (
-                <div
-                  key={run.id}
-                  className="px-5 py-4 cursor-pointer hover:bg-white/5"
-                  style={{ borderTop: i === 0 ? 'none' : '1px solid var(--color-border-subtle)' }}
-                  onClick={() => navigate(`/jobs/${run.jobId}`)}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm font-semibold font-mono truncate" style={{ color: 'var(--color-accent-primary)' }}>{run.jobName}</span>
-                      <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{relative(run.startedAt)}</span>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: pill.bg, color: pill.color }}>{run.status}</span>
-                  </div>
-                  <p className="text-sm whitespace-pre-wrap line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>
-                    {run.aiOutput?.trim() ? run.aiOutput : run.kaneSummary?.trim() ? `(browser) ${run.kaneSummary}` : '(no output yet)'}
-                  </p>
-                </div>
-              )
-            })
-          )}
-        </div>
-
-        {/* Jobs list */}
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border-subtle)' }}>
-          <div className="px-5 py-3 text-[11px] font-bold uppercase tracking-[0.15em] font-brand" style={{ background: 'rgba(255,255,255,0.03)', color: 'var(--color-text-muted)' }}>
-            Jobs
-          </div>
-          {jobs.length === 0 ? (
-            <div className="p-8 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>No jobs yet. Create one to get started.</div>
-          ) : (
-            jobs.map((job, i) => {
-              const pill = statusPill(job.lastStatus)
-              return (
-                <motion.div
-                  key={job.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-white/5"
-                  style={{ borderTop: '1px solid var(--color-border-subtle)' }}
-                  onClick={() => navigate(`/jobs/${job.id}`)}
-                >
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold font-mono truncate" style={{ color: 'var(--color-accent-primary)' }}>{job.name}</div>
-                    <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{job.mode}</div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs px-2 py-1 rounded-full" style={{ background: pill.bg, color: pill.color }}>
-                      {job.lastStatus || 'idle'}
-                    </span>
-                    <ArrowRight size={15} style={{ color: 'var(--color-text-muted)' }} />
-                  </div>
-                </motion.div>
-              )
-            })
-          )}
+        <div className={cardCls} style={cardStyle}>
+          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>What you can do</h2>
+          <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+            <li>• <span style={{ color: 'var(--color-text-primary)' }}>Chat</span> — talk to your local AI model directly.</li>
+            <li>• <span style={{ color: 'var(--color-text-primary)' }}>Sessions</span> — keep separate, organized conversations.</li>
+            <li>• <span style={{ color: 'var(--color-text-primary)' }}>Kane CLI</span> — your browser-automation agent; its status is shown above.</li>
+          </ul>
         </div>
       </div>
-    </div>
-  )
-}
-
-function StatusRow({ icon, label, value }: { icon: boolean; label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-        {icon ? <CheckCircle2 size={14} style={{ color: '#00E68A' }} /> : <XCircle size={14} style={{ color: '#F87171' }} />}
-        {label}
-      </span>
-      <span style={{ color: 'var(--color-text-muted)' }}>{value || (icon ? 'yes' : 'no')}</span>
     </div>
   )
 }
