@@ -421,7 +421,12 @@ function startScheduler() {
 // Kane status
 app.get('/api/kane/status', (_req, res) => {
   const status = kaneStatus()
-  res.json({ ...status, modelLoaded: currentModelId !== null })
+  res.json({
+    ...status,
+    modelLoaded: currentModelId !== null,
+    modelName: currentModelName,
+    uptime: loadedAt ? Math.floor((Date.now() - loadedAt) / 1000) : null,
+  })
 })
 
 // Job CRUD

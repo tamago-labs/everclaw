@@ -36,6 +36,18 @@ function until(iso: string | null): string {
   return `in ${Math.floor(hrs / 24)}d`
 }
 
+function formatUptime(seconds: number): string {
+  const mins = Math.floor(seconds / 60) % 60
+  const hrs = Math.floor(seconds / 3600) % 24
+  const days = Math.floor(seconds / 86400)
+  const parts: string[] = []
+  if (days > 0) parts.push(`${days}d`)
+  if (hrs > 0) parts.push(`${hrs}h`)
+  if (mins > 0) parts.push(`${mins}m`)
+  if (parts.length === 0) parts.push('<1m')
+  return parts.join(' ')
+}
+
 export default function OverviewPage() {
   const [kane, setKane] = useState<any>(null)
   const [jobs, setJobs] = useState<Job[]>([])
@@ -117,10 +129,15 @@ export default function OverviewPage() {
               <Bot size={18} style={{ color: 'var(--color-accent-primary)' }} />
               <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Local AI</span>
             </div>
-            <div className="space-y-2 text-sm">
-              <StatusRow icon={!!(kane && kane.modelLoaded)} label="Model loaded" value="" />
-              <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                {kane && kane.modelLoaded ? 'Job pipeline can run end-to-end.' : 'Load a model in Chat to enable scheduled jobs.'}
+            <div className="space-y-2.5 text-sm">
+              <StatusRow icon={!!(kane && kane.modelLoaded)} label="Status" value={kane && kane.modelLoaded ? 'Ready' : 'Idle'} />
+              <div className="flex items-center justify-between">
+                <span style={{ color: 'var(--color-text-secondary)' }}>Model</span>
+                <span className="font-mono truncate max-w-[140px]" style={{ color: 'var(--color-text-primary)' }}>{kane?.modelName || '—'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span style={{ color: 'var(--color-text-secondary)' }}>Uptime</span>
+                <span style={{ color: 'var(--color-text-primary)' }}>{kane?.uptime != null ? formatUptime(kane.uptime) : '—'}</span>
               </div>
             </div>
           </div>
