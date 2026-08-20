@@ -38,7 +38,7 @@ npm run dev          # starts CLI (:3001) + frontend (:3000)
 
 ---
 
-## The six "agents in the wild"
+## The seven "agents in the wild"
 
 | Template | What it actually does |
 |----------|------------------------|
@@ -48,6 +48,7 @@ npm run dev          # starts CLI (:3001) + frontend (:3000)
 | 🛒 **Add to cart** | Searches eBay and adds an item to cart |
 | 🔍 **Competitor watch** | Monitors a rival's pricing / features page |
 | 🗑️ **Subscription killer** | Navigates cancellation flows so you don't have to |
+| 🦋 **Post to Bluesky** | Logs in and publishes a post you provide |
 
 Each template is a complete, runnable browser-agent job — pick one and it's live in seconds.
 
@@ -70,6 +71,35 @@ Each template is a complete, runnable browser-agent job — pick one and it's li
 
 - **Pipeline mode** — a fixed kane-cli objective runs, then local AI analyzes the result
 - **Plan mode** — local AI *writes* the objective from your high-level goal, kane-cli runs it, then AI analyzes
+
+---
+
+## Configuration
+
+**Models.** Local models are loaded via the UI (or `POST /api/ai/load`). Qwen 1.7B ships cached; larger models download on first use. A model must be loaded for a job's AI-analysis stage to run.
+
+**kane-cli.** Everclaw drives kane-cli under the hood, so it must be installed and authenticated:
+
+```bash
+kane-cli whoami     # should report "Authenticated"
+```
+
+**Data.** Everything lives under `~/.everclaw` (jobs, sessions, downloaded models). Nothing is sent off-machine.
+
+**Env.** `KANE_CLI_USER_AGENT` is set automatically on each run; you normally don't need to touch it.
+
+---
+
+## Project structure
+
+```
+src/                 # CLI: Express server, QVAC model loading,
+                     # job scheduler, session store
+  kaneCli.ts         # wraps `kane-cli run --agent` (NDJSON)
+  index.ts           # API + two-stage pipeline + static UI serving
+frontend/            # React + Vite UI (built to frontend/out,
+                     # served in production by the CLI)
+```
 
 ---
 
