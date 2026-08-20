@@ -24,6 +24,7 @@ import { ModelStore } from './modelStore.js'
 import { SessionStore, type Message } from './sessionStore.js'
 import { kaneStatus, runKane } from './kaneCli.js'
 import { JobStore, type Job } from './jobStore.js'
+import { shouldRunNow, computeNextRun } from './cron.js'
 
 // --- Log capture (ring buffer served via /api/logs) ---
 const logBuffer: string[] = []
@@ -385,10 +386,36 @@ async function executeJob(jobId: string, runId: string): Promise<void> {
   }
 }
 
-function startJob(jobId: string): string {
+const runningJobIds = new Set<string>()
+
+function startJob(jobId: string): string | null {
+  if (runningJobIds.has(jobId)) return null
+  runningJobIds.add(jobId)
   const runId = jobStore.addRun(jobId, {})
-  executeJob(jobId, runId).catch((e) => console.error('[job] run failed:', e))
+  executeJob(jobId, runId)
+    .catch((e) => console.error('[job] run failed:', e))
+    .finally(() => runningJobIds.delete(jobId))
   return runId
+}
+
+// Cron scheduler: polls every 60s, runs enabled/due jobs. Gated on a loaded model.
+function startScheduler() {
+  const tick = () => {
+    if (!currentModelId) return
+    const now = new Date()
+    for (const job of jobStore.list()) {
+      if (!job.enabled || !job.schedule) continue
+      const next = computeNextRun(job.schedule, now)
+      if (next && job.nextRun !== next.toISOString()) {
+        jobStore.update(job.id, { nextRun: next.toISOString() })
+      }
+      if (shouldRunNow(job.schedule, now)) {
+        startJob(job.id)
+      }
+    }
+  }
+  tick()
+  setInterval(tick, 60_000)
 }
 
 // Kane status
@@ -409,7 +436,7 @@ app.post('/api/jobs', (req, res) => {
   if (mode === 'pipeline' && !objective?.trim()) return res.status(400).json({ error: 'objective is required in pipeline mode' })
 
   const session = sessionStore.create(`job: ${name}`)
-  const job = jobStore.create({
+  let job = jobStore.create({
     name: name.trim(),
     mode: mode === 'plan' ? 'plan' : 'pipeline',
     type: type || 'custom',
@@ -422,12 +449,20 @@ app.post('/api/jobs', (req, res) => {
     variables: variables || {},
     sessionId: session.id,
   })
+  if (job.schedule) {
+    const next = computeNextRun(job.schedule)
+    if (next) job = jobStore.update(job.id, { nextRun: next.toISOString() }) ?? job
+  }
   res.json({ job })
 })
 
 app.put('/api/jobs/:id', (req, res) => {
   const updated = jobStore.update(req.params.id, req.body)
   if (!updated) return res.status(404).json({ error: 'Job not found' })
+  if (updated.schedule) {
+    const next = computeNextRun(updated.schedule)
+    if (next) jobStore.update(updated.id, { nextRun: next.toISOString() })
+  }
   res.json({ job: updated })
 })
 
@@ -452,6 +487,7 @@ app.post('/api/jobs/:id/run', (req, res) => {
   const job = jobStore.get(req.params.id)
   if (!job) return res.status(404).json({ error: 'Job not found' })
   const runId = startJob(job.id)
+  if (!runId) return res.status(409).json({ error: 'Job already running' })
   res.json({ ok: true, runId, status: 'running' })
 })
 
@@ -571,6 +607,7 @@ if (fs.existsSync(frontendDist)) {
 // ============== Start ==============
 
 ensureQvacConfig()
+startScheduler()
 
 server.listen(PORT, () => {
   console.log(`\n  🦞 Everclaw CLI running at http://localhost:${PORT}\n`)
