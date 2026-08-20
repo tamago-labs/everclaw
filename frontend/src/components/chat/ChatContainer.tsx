@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
-import { useAI } from '../../context/AIContext'
+import { getSession } from '../../api'
 import ChatHeader from './ChatHeader'
 
 interface Message {
@@ -12,9 +11,12 @@ interface Message {
   thinking?: string
 }
 
-export default function ChatContainer({ sessionId }: { sessionId: string | null }) {
-  const { status } = useAI()
-  const navigate = useNavigate()
+interface Props {
+  sessionId: string | null
+  onSessionChange: (id: string) => void
+}
+
+export default function ChatContainer({ sessionId, onSessionChange }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -23,12 +25,35 @@ export default function ChatContainer({ sessionId }: { sessionId: string | null 
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const assistantContentRef = useRef('')
+  const sessionIdRef = useRef(sessionId)
+
+  // Keep ref in sync
+  useEffect(() => { sessionIdRef.current = sessionId }, [sessionId])
+
+  // Load messages when session changes
+  useEffect(() => {
+    if (sessionId) {
+      getSession(sessionId).then((r) => {
+        setMessages(r.messages)
+        setStreamingThinking('')
+        setError(null)
+      }).catch(() => {
+        setMessages([])
+      })
+    } else {
+      setMessages([])
+    }
+  }, [sessionId])
 
   // Connect WebSocket
   useEffect(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws`)
     wsRef.current = ws
+
+    ws.onopen = () => {
+      console.log('WebSocket connected')
+    }
 
     ws.onmessage = (event) => {
       try {
@@ -58,7 +83,15 @@ export default function ChatContainer({ sessionId }: { sessionId: string | null 
       } catch {}
     }
 
-    ws.onclose = () => { wsRef.current = null }
+    ws.onclose = () => {
+      console.log('WebSocket disconnected')
+      wsRef.current = null
+    }
+
+    ws.onerror = (err) => {
+      console.error('WebSocket error:', err)
+    }
+
     return () => { ws.close() }
   }, [])
 
@@ -88,18 +121,14 @@ export default function ChatContainer({ sessionId }: { sessionId: string | null 
     wsRef.current?.send(JSON.stringify({
       type: 'chat',
       message: userMsg.content,
-      sessionId,
+      sessionId: sessionIdRef.current,
       history,
     }))
   }
 
-  const handleNewSession = () => {
-    navigate('/sessions')
-  }
-
   return (
-    <div className="flex flex-col h-full">
-      <ChatHeader sessionId={sessionId} onNewSession={handleNewSession} />
+    <div className="flex flex-col h-full" style={{ height: 'calc(100vh - 0px)' }}>
+      <ChatHeader sessionId={sessionId} onSessionChange={onSessionChange} />
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">

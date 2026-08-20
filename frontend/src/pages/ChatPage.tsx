@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ChatContainer from '../components/chat/ChatContainer'
 import { useAI } from '../context/AIContext'
 
 export default function ChatPage() {
   const { status } = useAI()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const sessionId = searchParams.get('session')
+
+  const handleSessionChange = (id: string) => {
+    setSearchParams({ session: id })
+  }
 
   if (!status?.loaded) {
     return (
@@ -22,5 +26,5 @@ export default function ChatPage() {
     )
   }
 
-  return <ChatContainer sessionId={sessionId} />
+  return <ChatContainer sessionId={sessionId} onSessionChange={handleSessionChange} />
 }
