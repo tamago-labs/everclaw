@@ -127,7 +127,11 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
       content: input.trim(),
     }
 
-    setMessages((prev) => [...prev, userMsg])
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: (Date.now() + 1).toString(), role: 'assistant', content: '' },
+    ])
     assistantContentRef.current = ''
     setStreamingThinking('')
     setError(null)
@@ -178,7 +182,7 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
 
         {messages.map((msg, i) => {
           const isLast = i === messages.length - 1
-          const showThinking = streaming && streamingThinking && isLast
+          const showThinking = streaming && streamingThinking && msg.role === 'assistant' && isLast
 
           return (
             <Fragment key={msg.id}>
@@ -214,7 +218,15 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
                     color: msg.role === 'user' ? '#0F1117' : 'var(--color-text-primary)',
                   }}
                 >
-                  <p className="whitespace-pre-wrap break-words text-sm">{msg.content}</p>
+                  {msg.content ? (
+                    <p className="whitespace-pre-wrap break-words text-sm">{msg.content}</p>
+                  ) : msg.role === 'assistant' && streaming && !streamingThinking ? (
+                    <span className="flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
+                      <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--color-text-muted)' }} />
+                      <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--color-text-muted)', animationDelay: '0.15s' }} />
+                      <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--color-text-muted)', animationDelay: '0.3s' }} />
+                    </span>
+                  ) : null}
                 </div>
               </motion.div>
             </Fragment>

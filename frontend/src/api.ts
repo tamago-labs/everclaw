@@ -191,3 +191,15 @@ export async function saveSessionMessages(id: string, messages: any[]): Promise<
   })
   return res.json()
 }
+
+// ============== Logs ==============
+
+export async function fetchLogs(): Promise<{ logs: string[] }> {
+  const res = await fetch(`${API_BASE}/logs`)
+  return res.json()
+}
+
+export async function clearLogs(): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_BASE}/logs/clear`, { method: 'POST' })
+  return res.json()
+}

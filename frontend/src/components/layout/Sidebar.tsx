@@ -25,6 +25,9 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const isActive = (path: string) =>
+    location.pathname === path || (path === '/' && location.pathname === '/chat')
+
   return (
     <div
       className="w-[240px] shrink-0 flex flex-col border-r"
@@ -84,10 +87,14 @@ export default function Sidebar() {
       {/* Bottom settings */}
       <div className="px-4 pb-5">
         <button
+          onClick={() => navigate('/settings')}
           className="flex items-center gap-3.5 w-full px-3.5 py-2.5 rounded-xl text-[15px] font-semibold transition-all"
-          style={{ color: 'var(--color-text-muted)' }}
+          style={{
+            background: isActive('/settings') ? 'var(--color-accent-primary-dim)' : 'transparent',
+            color: isActive('/settings') ? 'var(--color-accent-primary)' : 'var(--color-text-muted)',
+          }}
         >
-          <Settings size={20} strokeWidth={1.8} />
+          <Settings size={20} strokeWidth={isActive('/settings') ? 2.2 : 1.8} />
           <span>Settings</span>
         </button>
       </div>
