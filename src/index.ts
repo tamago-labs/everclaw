@@ -228,10 +228,14 @@ app.put('/api/sessions/:id', (req, res) => {
 
 // ============== WebSocket ==============
 
-const wss = new WebSocketServer({ server, path: '/ws' })
+const wss = new WebSocketServer({ server })
 
-wss.on('connection', (ws) => {
-  console.log('  WS client connected')
+wss.on('connection', (ws, req) => {
+  console.log('  WS client connected from', req.socket.remoteAddress)
+
+  ws.on('error', (err) => {
+    console.error('  WS error:', err.message)
+  })
 
   ws.on('message', async (raw) => {
     try {

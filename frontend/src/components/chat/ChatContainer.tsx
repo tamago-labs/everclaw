@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
 import { getSession } from '../../api'
@@ -22,12 +22,14 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
   const [streaming, setStreaming] = useState(false)
   const [streamingThinking, setStreamingThinking] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [wsConnected, setWsConnected] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const assistantContentRef = useRef('')
   const sessionIdRef = useRef(sessionId)
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>()
+  const mountedRef = useRef(true)
 
-  // Keep ref in sync
   useEffect(() => { sessionIdRef.current = sessionId }, [sessionId])
 
   // Load messages when session changes
@@ -37,63 +39,78 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
         setMessages(r.messages)
         setStreamingThinking('')
         setError(null)
-      }).catch(() => {
-        setMessages([])
-      })
+      }).catch(() => setMessages([]))
     } else {
       setMessages([])
     }
   }, [sessionId])
 
-  // Connect WebSocket
+  // WebSocket with auto-reconnect
   useEffect(() => {
-    const wsHost = import.meta.env.DEV ? 'localhost:3001' : window.location.host
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const ws = new WebSocket(`${protocol}//${wsHost}/ws`)
-    wsRef.current = ws
+    mountedRef.current = true
 
-    ws.onopen = () => {
-      console.log('WebSocket connected')
-    }
+    function connect() {
+      if (!mountedRef.current) return
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        if (data.type === 'token') {
-          assistantContentRef.current += data.text
-          setMessages((prev) => {
-            const updated = [...prev]
-            const last = updated[updated.length - 1]
-            if (last && last.role === 'assistant') {
-              last.content = assistantContentRef.current
-            } else {
-              updated.push({ id: Date.now().toString(), role: 'assistant', content: assistantContentRef.current })
-            }
-            return [...updated]
-          })
-        } else if (data.type === 'thinking') {
-          setStreamingThinking((prev) => prev + data.text)
-        } else if (data.type === 'done') {
-          setStreaming(false)
-          setStreamingThinking('')
-          assistantContentRef.current = ''
-        } else if (data.type === 'error') {
-          setError(data.message)
-          setStreaming(false)
+      const wsHost = import.meta.env.DEV ? 'localhost:3001' : window.location.host
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const ws = new WebSocket(`${protocol}//${wsHost}/ws`)
+      wsRef.current = ws
+
+      ws.onopen = () => {
+        console.log('WS connected')
+        setWsConnected(true)
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.type === 'token') {
+            assistantContentRef.current += data.text
+            setMessages((prev) => {
+              const updated = [...prev]
+              const last = updated[updated.length - 1]
+              if (last && last.role === 'assistant') {
+                last.content = assistantContentRef.current
+              } else {
+                updated.push({ id: Date.now().toString(), role: 'assistant', content: assistantContentRef.current })
+              }
+              return [...updated]
+            })
+          } else if (data.type === 'thinking') {
+            setStreamingThinking((prev) => prev + data.text)
+          } else if (data.type === 'done') {
+            setStreaming(false)
+            setStreamingThinking('')
+            assistantContentRef.current = ''
+          } else if (data.type === 'error') {
+            setError(data.message)
+            setStreaming(false)
+          }
+        } catch {}
+      }
+
+      ws.onclose = () => {
+        console.log('WS disconnected, reconnecting in 2s...')
+        setWsConnected(false)
+        wsRef.current = null
+        if (mountedRef.current) {
+          reconnectTimer.current = setTimeout(connect, 2000)
         }
-      } catch {}
+      }
+
+      ws.onerror = () => {
+        // onclose will handle reconnect
+      }
     }
 
-    ws.onclose = () => {
-      console.log('WebSocket disconnected')
-      wsRef.current = null
-    }
+    connect()
 
-    ws.onerror = (err) => {
-      console.error('WebSocket error:', err)
+    return () => {
+      mountedRef.current = false
+      clearTimeout(reconnectTimer.current)
+      wsRef.current?.close()
     }
-
-    return () => { ws.close() }
   }, [])
 
   // Auto scroll
@@ -117,7 +134,6 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
     setInput('')
     setStreaming(true)
 
-    // Send via WebSocket
     const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }))
     wsRef.current?.send(JSON.stringify({
       type: 'chat',
@@ -140,6 +156,9 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
             </div>
             <p className="text-lg font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>Start a conversation</p>
             <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Ask me anything!</p>
+            {!wsConnected && (
+              <p className="text-xs mt-2" style={{ color: 'rgba(245,158,11,0.8)' }}>Connecting to server...</p>
+            )}
           </div>
         )}
 
@@ -151,20 +170,15 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Avatar */}
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-              style={{
-                background: msg.role === 'user' ? 'var(--color-accent-primary)' : 'rgba(255,255,255,0.1)',
-              }}
+              style={{ background: msg.role === 'user' ? 'var(--color-accent-primary)' : 'rgba(255,255,255,0.1)' }}
             >
               {msg.role === 'user'
                 ? <User size={16} className="text-[#0F1117]" />
                 : <Bot size={16} className="text-white/70" />
               }
             </div>
-
-            {/* Bubble */}
             <div
               className="rounded-2xl px-4 py-3 max-w-[80%]"
               style={{
@@ -177,7 +191,6 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
           </motion.div>
         ))}
 
-        {/* Streaming thinking */}
         {streamingThinking && (
           <div className="ml-11">
             <div
@@ -189,7 +202,6 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
           </div>
         )}
 
-        {/* Streaming indicator */}
         {streaming && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }}>
@@ -221,8 +233,8 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            disabled={streaming}
+            placeholder={wsConnected ? 'Type your message...' : 'Connecting...'}
+            disabled={streaming || !wsConnected}
             className="flex-1 px-4 py-3 text-sm outline-none"
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -232,12 +244,12 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
           />
           <button
             type="submit"
-            disabled={!input.trim() || streaming}
+            disabled={!input.trim() || streaming || !wsConnected}
             className="px-4 py-3 transition-all"
             style={{
               background: 'var(--color-accent-primary)',
               color: '#0F1117',
-              opacity: !input.trim() || streaming ? 0.4 : 1,
+              opacity: !input.trim() || streaming || !wsConnected ? 0.4 : 1,
             }}
           >
             <Send size={18} />
