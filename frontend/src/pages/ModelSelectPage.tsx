@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { useAI } from '../context/AIContext'
 import { fetchModels, loadModelSSE, type ModelEntry } from '../api'
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(0)} MB`
-  return `${(bytes / 1024 ** 3).toFixed(1)} GB`
-}
 
 export default function ModelSelectPage() {
   const { refresh } = useAI()
@@ -47,50 +43,82 @@ export default function ModelSelectPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8">
-      <div className="w-full max-w-[520px]">
+      <motion.div
+        className="w-full max-w-[560px]"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+      >
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-ev-accent flex items-center justify-center mx-auto mb-4" style={{ boxShadow: '0 0 20px rgba(0, 230, 138, 0.4)' }}>
+          <motion.div
+            className="w-14 h-14 rounded-2xl bg-ev-accent flex items-center justify-center mx-auto mb-4"
+            style={{ boxShadow: '0 0 20px rgba(0, 230, 138, 0.4)' }}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
+          >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0F1117" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+              <path d="M6 9l6 6 6-6" />
             </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gradient-white mb-2">Welcome</h1>
-          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Choose a model to get started</p>
+          </motion.div>
+          <motion.h1
+            className="text-2xl font-bold text-gradient-white mb-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            Everclaw
+          </motion.h1>
+          <motion.p
+            className="text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            Choose a model to get started
+          </motion.p>
         </div>
 
-        {/* Model cards */}
-        <div className="space-y-3 mb-6">
+        {/* Model cards - 2 column grid */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
           {models.map((model, i) => (
-            <button
+            <motion.button
               key={model.id}
               disabled={loading}
               onClick={() => setSelectedId(model.id)}
-              className="glass w-full text-left p-5 transition-all duration-200 cursor-pointer"
+              className="glass text-left p-4 transition-all duration-200 cursor-pointer"
               style={{
                 borderColor: selectedId === model.id ? 'rgba(0, 230, 138, 0.5)' : undefined,
-                animationDelay: `${i * 100}ms`,
               }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 + i * 0.08 }}
+              whileTap={{ scale: 0.97 }}
             >
-              <div className="relative z-10 flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="font-semibold text-sm mb-1.5" style={{ color: 'var(--color-text-primary)' }}>
-                    {model.name}
-                  </div>
-                  <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    {model.description}
-                  </div>
+              <div className="relative z-10">
+                <div className="font-semibold text-sm mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                  {model.name}
                 </div>
-                <div className="text-xs px-2.5 py-1 rounded-full ml-3 shrink-0" style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--color-text-secondary)' }}>
-                  {model.params}
+                <div className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>
+                  {model.description}
+                </div>
+                <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                  {model.quantization} · {model.params}
                 </div>
               </div>
-            </button>
+            </motion.button>
           ))}
         </div>
 
         {/* Config panel */}
-        <div className="glass p-5 mb-6">
+        <motion.div
+          className="glass p-5 mb-6"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
           <div className="relative z-10">
             <label className="text-xs font-medium block mb-2" style={{ color: 'var(--color-text-muted)' }}>Context Size</label>
             <div className="flex gap-2">
@@ -111,11 +139,16 @@ export default function ModelSelectPage() {
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Progress */}
         {progress && progress.phase !== 'done' && (
-          <div className="glass p-5 mb-6">
+          <motion.div
+            className="glass p-5 mb-6"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
             <div className="relative z-10 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
@@ -126,39 +159,57 @@ export default function ModelSelectPage() {
                 </span>
               </div>
               <div className="w-full rounded-full h-1.5" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                <div
-                  className="h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${progress.percent || 0}%`, background: 'var(--color-accent-primary)' }}
+                <motion.div
+                  className="h-1.5 rounded-full"
+                  style={{ background: 'var(--color-accent-primary)' }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress.percent || 0}%` }}
+                  transition={{ duration: 0.3 }}
                 />
               </div>
               {progress.message && (
                 <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{progress.message}</p>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Error */}
         {error && (
-          <div className="p-3 rounded-xl text-sm mb-6" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#F87171' }}>
+          <motion.div
+            className="p-3 rounded-xl text-sm mb-6"
+            style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#F87171' }}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
             {error}
-          </div>
+          </motion.div>
         )}
 
         {/* Load button */}
-        <button
+        <motion.button
           onClick={handleLoad}
           disabled={!selectedId || loading}
           className="btn-primary w-full"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          whileTap={{ scale: 0.98 }}
         >
           {loading ? 'Loading...' : selected ? `Load ${selected.name}` : 'Select a model'}
-        </button>
+        </motion.button>
 
         {/* Download info */}
-        <p className="text-center text-xs mt-4" style={{ color: 'var(--color-accent-primary)', opacity: 0.7 }}>
+        <motion.p
+          className="text-center text-xs mt-4"
+          style={{ color: 'var(--color-accent-primary)', opacity: 0.7 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.7 }}
+          transition={{ delay: 0.7 }}
+        >
           Initial download required. Subsequent uses will load from local cache.
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
     </div>
   )
 }

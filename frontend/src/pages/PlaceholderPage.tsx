@@ -1,5 +1,6 @@
 import { useAI } from '../context/AIContext'
 import { unloadModel } from '../api'
+import { motion } from 'framer-motion'
 
 function formatUptime(ms: number): string {
   const sec = Math.floor(ms / 1000)
@@ -8,11 +9,6 @@ function formatUptime(ms: number): string {
   if (min < 60) return `${min}m ${sec % 60}s`
   const hr = Math.floor(min / 60)
   return `${hr}h ${min % 60}m`
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(0)} MB`
-  return `${(bytes / 1024 ** 3).toFixed(1)} GB`
 }
 
 export default function PlaceholderPage() {
@@ -27,11 +23,22 @@ export default function PlaceholderPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
         {/* Page title */}
-        <h1 className="text-2xl font-bold text-gradient-white mb-6">Overview</h1>
+        <motion.h1
+          className="text-2xl font-bold text-gradient-white mb-6"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          Overview
+        </motion.h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {/* Welcome card */}
-          <div className="glass-glow md:col-span-2 p-6">
+          <motion.div
+            className="glass-glow md:col-span-2 p-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
             <div className="relative z-10">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -56,16 +63,24 @@ export default function PlaceholderPage() {
                 </svg>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* AI Status card */}
-          <div className="glass p-6">
+          <motion.div
+            className="glass p-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-4">
                 <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'var(--color-bg-elevated)', border: '1px solid rgba(255,255,255,0.1)' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
-                    <rect x="4" y="4" width="16" height="16" rx="2" />
-                    <path d="M9 9h6v6H9z" />
+                    <path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93" />
+                    <path d="M8 6a4 4 0 0 1 8 0" />
+                    <path d="M6 12h12" />
+                    <path d="M12 16v4" />
+                    <path d="M8 20h8" />
                   </svg>
                 </div>
               </div>
@@ -90,17 +105,28 @@ export default function PlaceholderPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Placeholder message */}
-        <div className="glass p-6">
+        <motion.div
+          className="glass p-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
           <div className="relative z-10 text-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--color-accent-primary-dim)' }}>
+            <motion.div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ background: 'var(--color-accent-primary-dim)' }}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.4 }}
+            >
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 13l4 4L19 7" />
               </svg>
-            </div>
+            </motion.div>
             <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>Phase 1 Complete</h3>
             <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>
               Model loaded successfully. Phase 2 will add chat, agents, and browser tools.
@@ -114,7 +140,7 @@ export default function PlaceholderPage() {
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   )
