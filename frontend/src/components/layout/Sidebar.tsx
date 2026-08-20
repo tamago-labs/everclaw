@@ -18,6 +18,7 @@ const navItems: { title: string; items: NavItem[] }[] = [
       { icon: LayoutDashboard, label: 'Overview', path: '/overview' },
       { icon: Bot, label: 'Jobs', path: '/jobs' },
       { icon: List, label: 'Sessions', path: '/sessions' },
+      { icon: Settings, label: 'Settings', path: '/settings' },
     ],
   },
 ]
@@ -25,9 +26,6 @@ const navItems: { title: string; items: NavItem[] }[] = [
 export default function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
-
-  const isActive = (path: string) =>
-    location.pathname === path || (path === '/' && location.pathname === '/chat') || (path === '/jobs' && location.pathname.startsWith('/jobs'))
 
   return (
     <div
@@ -84,21 +82,6 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
-
-      {/* Bottom settings */}
-      <div className="px-4 pb-5">
-        <button
-          onClick={() => navigate('/settings')}
-          className="flex items-center gap-3.5 w-full px-3.5 py-2.5 rounded-xl text-[15px] font-semibold transition-all"
-          style={{
-            background: isActive('/settings') ? 'var(--color-accent-primary-dim)' : 'transparent',
-            color: isActive('/settings') ? 'var(--color-accent-primary)' : 'var(--color-text-muted)',
-          }}
-        >
-          <Settings size={20} strokeWidth={isActive('/settings') ? 2.2 : 1.8} />
-          <span>Settings</span>
-        </button>
-      </div>
     </div>
   )
 }
