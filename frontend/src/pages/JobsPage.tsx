@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Plus, Play, Pause, Trash2, RefreshCw, ChevronRight, Loader2 } from 'lucide-react'
-import { fetchJobs, toggleJob, runJob, deleteJob, type Job, type JobStatus } from '../api'
+import { fetchJobs, fetchJobRuns, toggleJob, runJob, deleteJob, type Job, type JobStatus } from '../api'
 import JobFormModal from '../components/jobs/JobFormModal'
 
 function statusPill(status: JobStatus | null): { label: string; bg: string; color: string } {
@@ -48,7 +48,31 @@ export default function JobsPage() {
   }
   const handleRun = async (job: Job) => {
     setRunning(job.id)
-    try { await runJob(job.id) } finally { setRunning(null); load() }
+    try {
+      await runJob(job.id)
+      // Poll until the run reaches a terminal state so the UI reflects progress.
+      const poll = setInterval(async () => {
+        try {
+          const r = await fetchJobRuns(job.id)
+          const latest = r.runs[0]
+          const terminal = latest && latest.status !== 'running' && latest.status !== 'waiting-model'
+          if (terminal) {
+            clearInterval(poll)
+            setRunning(null)
+            load()
+          }
+        } catch {
+          clearInterval(poll)
+          setRunning(null)
+          load()
+        }
+      }, 3000)
+      // Safety timeout: stop polling after 3 minutes regardless.
+      setTimeout(() => { clearInterval(poll); setRunning(null); load() }, 180000)
+    } catch {
+      setRunning(null)
+      load()
+    }
   }
   const confirmDelete = async () => {
     if (!pendingDelete) return

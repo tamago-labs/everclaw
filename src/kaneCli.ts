@@ -23,7 +23,7 @@ export interface KaneRunResult {
 function whichKane(): string {
   try {
     // Windows: kane-cli.cmd; others: kane-cli
-    const found = execSync('where kane-cli 2>nul || which kane-cli', { encoding: 'utf-8' }).trim().split('\n')[0]
+    const found = execSync('where kane-cli 2>nul || which kane-cli', { encoding: 'utf-8' }).replace(/\r/g, '').trim().split('\n')[0].trim()
     return found || 'kane-cli'
   } catch {
     return 'kane-cli'
@@ -75,18 +75,21 @@ export function startKaneStatusPolling(): void {
 export function runKane(objective: string, opts: KaneRunOptions = {}): Promise<KaneRunResult> {
   return new Promise((resolve, reject) => {
     const bin = whichKane()
+    // Hard ceiling so a hung kane-cli can never lock a job forever.
+    const timeoutSec = opts.timeout || 240
     const args = ['run', objective, '--agent']
     if (opts.url) args.push('--url', opts.url)
     if (opts.maxSteps) args.push('--max-steps', String(opts.maxSteps))
-    if (opts.timeout) args.push('--timeout', String(opts.timeout))
+    args.push('--timeout', String(timeoutSec))
     if (opts.headless) args.push('--headless')
     if (opts.variables && Object.keys(opts.variables).length > 0) {
       args.push('--variables', JSON.stringify(opts.variables))
     }
 
-    const child = spawn(bin, args, { env: { ...process.env, KANE_CLI_USER_AGENT: process.env.KANE_CLI_USER_AGENT || 'everclaw' } })
+    const child = spawn(bin, args, { shell: true, env: { ...process.env, KANE_CLI_USER_AGENT: process.env.KANE_CLI_USER_AGENT || 'everclaw' } })
     const logs: string[] = []
     let runEnd: any = null
+    let settled = false
 
     const handleLine = (line: string) => {
       const trimmed = line.trim()
@@ -107,9 +110,25 @@ export function runKane(objective: string, opts: KaneRunOptions = {}): Promise<K
       String(d).split('\n').forEach((l) => { if (l.trim()) logs.push(l.trim()) })
     })
 
-    child.on('error', (err) => reject(new Error(`Failed to launch kane-cli: ${err.message}`)))
+    child.on('error', (err) => {
+      if (settled) return
+      settled = true
+      clearTimeout(guard)
+      reject(new Error(`Failed to launch kane-cli: ${err.message}`))
+    })
+
+    // Guard: if kane-cli never emits run_end within the timeout, kill it and fail.
+    const guard = setTimeout(() => {
+      if (settled) return
+      settled = true
+      try { child.kill('SIGKILL') } catch { /* ignore */ }
+      reject(new Error(`kane-cli timed out after ${timeoutSec}s with no result`))
+    }, timeoutSec * 1000 + 15000)
 
     child.on('close', (code) => {
+      if (settled) return
+      settled = true
+      clearTimeout(guard)
       if (runEnd) {
         resolve({
           status: runEnd.status === 'passed' ? 'passed' : runEnd.status === 'failed' ? 'failed' : 'error',

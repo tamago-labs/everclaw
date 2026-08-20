@@ -42,7 +42,29 @@ export default function JobDetailPage() {
   const handleRun = async () => {
     if (!id) return
     setRunning(true)
-    try { await runJob(id) } finally { setRunning(false); load() }
+    try {
+      await runJob(id)
+      const poll = setInterval(async () => {
+        try {
+          const r = await fetchJobRuns(id)
+          const latest = r.runs[0]
+          const terminal = latest && latest.status !== 'running' && latest.status !== 'waiting-model'
+          if (terminal) {
+            clearInterval(poll)
+            setRunning(false)
+            load()
+          }
+        } catch {
+          clearInterval(poll)
+          setRunning(false)
+          load()
+        }
+      }, 3000)
+      setTimeout(() => { clearInterval(poll); setRunning(false); load() }, 180000)
+    } catch {
+      setRunning(false)
+      load()
+    }
   }
   const handleToggle = async () => {
     if (!job) return

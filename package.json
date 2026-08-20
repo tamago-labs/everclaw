@@ -1,18 +1,27 @@
 {
-  "name": "everclaw-new",
-  "version": "0.1.0",
+  "name": "@tamago-labs/everclaw",
+  "version": "0.5.0",
   "description": "Local AI claw with browser automation",
   "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "everclaw": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "frontend/out",
+    "README.md"
+  ],
   "scripts": {
     "dev": "concurrently -n cli,web -c blue,green \"npm run dev:cli\" \"npm run dev:web\"",
     "dev:cli": "tsx src/index.ts",
     "dev:web": "cd frontend && npm run dev",
     "build": "tsc && cd frontend && npm run build",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@qvac/sdk": "^0.13.5",
-    "concurrently": "^10.0.5",
     "express": "^4.21.0",
     "ws": "^8.21.3",
     "zod": "^3.24.0"
@@ -21,7 +30,16 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
+    "concurrently": "^10.0.5",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tamago-labs/everclaw.git"
   }
 }

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import express from 'express'
 import path from 'path'
 import fs from 'fs'
@@ -276,7 +277,7 @@ app.put('/api/sessions/:id', (req, res) => {
 
 function renderTemplate(tpl: string | undefined, vars: Record<string, any>): string {
   if (!tpl) return ''
-  return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => (vars && vars[k] != null ? String(vars[k]) : ''))
+  return tpl.replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? String(vars[k]) : ''))
 }
 
 // Local-model completion (non-streaming, accumulated). Reuses the loaded QVAC model.

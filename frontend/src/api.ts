@@ -207,7 +207,7 @@ export async function clearLogs(): Promise<{ ok: boolean }> {
 // ============== Kane + Jobs ==============
 
 export type JobMode = 'pipeline' | 'plan'
-export type JobType = 'check-website' | 'shopping' | 'apply-jobs' | 'subscription-killer' | 'renew' | 'travel' | 'lead-enrichment' | 'wikipedia' | 'game' | 'publish' | 'custom'
+export type JobType = 'news-digest' | 'price-tracker' | 'job-scanner' | 'add-to-cart' | 'competitor-watch' | 'subscription-killer' | 'post-social' | 'custom'
 export type JobStatus = 'waiting-model' | 'running' | 'passed' | 'failed' | 'error'
 
 export interface Job {

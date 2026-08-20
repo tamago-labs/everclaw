@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 
 export type JobMode = 'pipeline' | 'plan'
-export type JobType = 'check-website' | 'shopping' | 'apply-jobs' | 'custom'
+export type JobType = 'news-digest' | 'price-tracker' | 'job-scanner' | 'add-to-cart' | 'competitor-watch' | 'subscription-killer' | 'post-social' | 'custom'
 export type JobStatus = 'waiting-model' | 'running' | 'passed' | 'failed' | 'error'
 
 export interface Job {
