@@ -282,11 +282,11 @@ export async function fetchKaneStatus(): Promise<{ available: boolean; version: 
   return res.json()
 }
 
-export async function runKane(objective: string, url?: string): Promise<any> {
+export async function runKane(objective: string, url?: string, headless = true): Promise<any> {
   const res = await fetch(`${API_BASE}/kane/run`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ objective, url }),
+    body: JSON.stringify({ objective, url, headless }),
   })
   if (!res.ok) {
     const err = await res.json()

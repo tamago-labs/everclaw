@@ -334,41 +334,88 @@ app.delete('/api/agents/:id', (req, res) => {
 // ============== Kane run (slash /kane) ==============
 
 app.post('/api/kane/run', async (req, res) => {
-  const { objective, url } = req.body
+  const { objective, url, headless } = req.body as { objective: string; url?: string; headless?: boolean }
   if (!objective?.trim()) return res.status(400).json({ error: 'objective required' })
   const kaneStatus = getKaneStatus()
   if (!kaneStatus.available) return res.status(503).json({ error: 'Kane CLI not available' })
   if (!kaneStatus.authenticated) return res.status(401).json({ error: 'Kane not authenticated — run kane-cli login' })
   if (kaneStatus.balance && kaneStatus.balance.available < 5) return res.status(402).json({ error: `Low credits: ${kaneStatus.balance.available}` })
   const targetUrl = url || 'http://localhost:3001'
+  // --headless default true as requested (was headed and caused focus freeze)
+  const useHeadless = headless !== false
+  const args = ['run', objective, '--agent', '--url', targetUrl, '--timeout', '600']
+  if (useHeadless) args.push('--headless')
+  console.log(`kane run: ${objective.slice(0, 80)}... headless=${useHeadless}`)
   try {
-    const { execSync } = await import('child_process')
-    // Use JSON.stringify to safely quote objective and url for shell
-    const cmd = `kane-cli run ${JSON.stringify(objective)} --agent --url ${JSON.stringify(targetUrl)} --timeout 600`
-    console.log(`kane run: ${objective.slice(0, 80)}...`)
-    const out = execSync(cmd, {
-      encoding: 'utf-8',
+    const { spawn } = await import('child_process')
+    const child = spawn('kane-cli', args, {
       env: { ...process.env, KANE_CLI_USER_AGENT: process.env.KANE_CLI_USER_AGENT || 'everclaw' },
-      timeout: 620000,
-      maxBuffer: 10 * 1024 * 1024,
-    }) as string
-    const lines = out.trim().split('\n').filter(Boolean)
+      shell: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    let stdout = ''
+    let stderr = ''
     let runEnd: any = null
-    for (let i = lines.length - 1; i >= 0; i--) {
-      try {
-        const obj = JSON.parse(lines[i])
-        if (obj.type === 'run_end') { runEnd = obj; break }
-      } catch {}
-    }
-    if (!runEnd) {
-      console.error('kane run: no run_end in output')
-      return res.status(500).json({ error: 'No run_end from kane' })
-    }
-    console.log(`kane run done: ${runEnd.status} ${runEnd.duration}s`)
-    res.json(runEnd)
+    const killTimer = setTimeout(() => {
+      try { child.kill() } catch {}
+    }, 620000)
+
+    child.stdout.on('data', (chunk: Buffer) => {
+      const text = chunk.toString()
+      stdout += text
+      for (const line of text.split('\n')) {
+        const t = line.trim()
+        if (!t) continue
+        try {
+          const obj = JSON.parse(t)
+          if (obj.type === 'run_end') {
+            runEnd = obj
+            console.log(`kane run_end: ${obj.status} ${obj.duration}s`)
+          } else if (obj.step !== undefined) {
+            console.log(`kane step ${obj.step}: ${obj.status} ${obj.remark || ''}`.slice(0, 200))
+          } else if (obj.type === 'bifurcation') {
+            console.log(`kane bifurcation: ${obj.flows?.length || 0} flows`)
+          } else if (obj.type) {
+            console.log(`kane ${obj.type}`)
+          }
+        } catch {
+          // Not JSON — ignore (progress without type handled above)
+        }
+      }
+    })
+    child.stderr.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString()
+    })
+
+    child.on('close', (code) => {
+      clearTimeout(killTimer)
+      if (runEnd) {
+        console.log(`kane run done: ${runEnd.status} ${runEnd.duration}s`)
+        res.json(runEnd)
+      } else if (code !== 0) {
+        console.error(`kane run failed code=${code} stderr=${stderr.slice(0, 500)}`)
+        res.status(500).json({ error: stderr.slice(0, 500) || `kane exited ${code}` })
+      } else {
+        // Fallback parse from buffered stdout
+        const lines = stdout.trim().split('\n').filter(Boolean)
+        for (let i = lines.length - 1; i >= 0; i--) {
+          try {
+            const obj = JSON.parse(lines[i])
+            if (obj.type === 'run_end') { runEnd = obj; break }
+          } catch {}
+        }
+        if (runEnd) res.json(runEnd)
+        else res.status(500).json({ error: 'No run_end from kane' })
+      }
+    })
+    child.on('error', (err: any) => {
+      clearTimeout(killTimer)
+      console.error(`kane spawn error: ${err.message}`)
+      res.status(500).json({ error: err.message })
+    })
   } catch (err: any) {
     console.error(`kane run error: ${err.message}`)
-    res.status(500).json({ error: err.message || 'kane run failed' })
+    if (!res.headersSent) res.status(500).json({ error: err.message || 'kane run failed' })
   }
 })
 
