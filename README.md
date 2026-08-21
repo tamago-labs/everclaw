@@ -110,7 +110,7 @@ The local model replies in the same session. No browser involved.
 # URL: https://api.openweathermap.org — requires {{api_key}} via Variables
 ```
 
-Keep each Kane task self-contained — include the URL and any `{{variables}}` up front. Kane runs headlessly and cannot ask for input while running.
+Keep each Kane task self-contained — include the URL and any `{{variables}}` up front. 
 
 ### Variables
 
