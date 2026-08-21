@@ -5,6 +5,8 @@
 
 **Enables Private Local AI + Browser Automation with kane-cli**
 
+<img width="1863" height="807" alt="Screenshot 2026-08-21 232953" src="https://github.com/user-attachments/assets/3264e108-76b1-445b-9040-92f4bb7573c2" />
+
 Everclaw is a local-first desktop app that pairs on-device AI inference (Tether QVAC SDK) with kane-cli browser automation. The web UI runs on `http://localhost:3001` and keeps all data under `~/.everclaw`. No cloud, no API keys, no per-token billing.
 
 ## Overview
