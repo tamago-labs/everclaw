@@ -57,6 +57,14 @@ process.env.KANE_CLI_USER_AGENT = process.env.KANE_CLI_USER_AGENT || 'everclaw'
 
 app.use(express.json())
 
+// Light request logger (skip noisy polls)
+app.use((req, _res, next) => {
+  if (req.url.startsWith('/api/ai/status') || req.url === '/api/health') return next()
+  if (req.url.startsWith('/api/logs')) return next()
+  console.log(`${req.method} ${req.url}`)
+  next()
+})
+
 // --- QVAC Config ---
 const userDataPath = path.join(process.env.HOME || process.env.USERPROFILE || '.', '.everclaw')
 const cacheDir = path.join(userDataPath, 'qvac-cache')
@@ -124,6 +132,7 @@ app.get('/api/ai/models', (_req, res) => {
   res.json({ models: modelStore.getAll(), config: activeConfig })
 })
 
+
 // Add custom model
 app.post('/api/ai/models', (req, res) => {
   const { name, source, description } = req.body
@@ -131,13 +140,16 @@ app.post('/api/ai/models', (req, res) => {
     res.status(400).json({ error: 'Name and source are required' })
     return
   }
-  res.json(modelStore.add({ name, source, description }))
+  const m = modelStore.add({ name, source, description })
+  console.log(`model add: ${m.id} "${m.name}" ${m.sourceKind}`)
+  res.json(m)
 })
 
 // Remove custom model
 app.delete('/api/ai/models/:id', (req, res) => {
   const ok = modelStore.remove(req.params.id)
   if (!ok) return res.status(400).json({ error: 'Cannot remove model' })
+  console.log(`model remove: ${req.params.id}`)
   res.json({ ok: true })
 })
 
@@ -146,6 +158,7 @@ app.put('/api/ai/config', (req, res) => {
   const { ctx_size } = req.body
   if (ctx_size && [2048, 4096, 8192, 16384].includes(ctx_size)) {
     activeConfig.ctx_size = ctx_size
+    console.log(`config ctx_size -> ${ctx_size}`)
   }
   res.json({ config: activeConfig })
 })
@@ -153,6 +166,7 @@ app.put('/api/ai/config', (req, res) => {
 // Load model (SSE progress)
 app.post('/api/ai/load', async (req, res) => {
   const { modelId, ctx_size } = req.body
+  console.log(`ai/load start: ${modelId} ctx=${ctx_size || activeConfig.ctx_size}`)
   if (isLoading) return res.status(409).json({ error: 'Model already loading' })
 
   const entry = modelStore.getById(modelId)
@@ -203,11 +217,13 @@ app.post('/api/ai/load', async (req, res) => {
     isLoading = false
     loadingProgress = null
     currentRequestId = null
+    console.log(`ai/load done: ${entry.name} -> ${loadedModelId}`)
     send({ phase: 'done', percent: 100, message: `${entry.name} loaded successfully` })
   } catch (err: any) {
     isLoading = false
     loadingProgress = null
     currentRequestId = null
+    console.error(`ai/load error: ${err.message}`)
     send({ phase: 'error', percent: 0, message: err.message || 'Failed to load model' })
   } finally { res.end() }
 })
@@ -234,19 +250,23 @@ app.get('/api/sessions', (_req, res) => {
 app.post('/api/sessions', (req, res) => {
   const { name } = req.body
   if (!name?.trim()) return res.status(400).json({ error: 'Name is required' })
-  res.json(sessionStore.create(name))
+  const s = sessionStore.create(name)
+  console.log(`session create: ${s.id} "${s.name}"`)
+  res.json(s)
 })
 
 app.delete('/api/sessions/:id', (req, res) => {
   if (req.params.id === 'main') return res.status(400).json({ error: 'CANNOT_DELETE_PINNED' })
   const ok = sessionStore.delete(req.params.id)
   if (!ok) return res.status(404).json({ error: 'Session not found' })
+  console.log(`session delete: ${req.params.id}`)
   res.json({ ok: true })
 })
 
 // Clear messages (keeps the session; allowed for the default session)
 app.post('/api/sessions/:id/clear', (req, res) => {
   sessionStore.clearMessages(req.params.id)
+  console.log(`session clear: ${req.params.id}`)
   res.json({ ok: true })
 })
 
@@ -285,7 +305,9 @@ app.post('/api/agents', (req, res) => {
     res.status(400).json({ error: 'Name and systemPrompt are required' })
     return
   }
-  res.json(agentStore.add({ name, description, systemPrompt }))
+  const agent = agentStore.add({ name, description, systemPrompt })
+  console.log(`agent create: ${agent.id} "${agent.name}"`)
+  res.json(agent)
 })
 
 app.get('/api/agents/:id', (req, res) => {
@@ -298,12 +320,14 @@ app.put('/api/agents/:id', (req, res) => {
   const { name, description, systemPrompt } = req.body
   const agent = agentStore.update(req.params.id, { name, description, systemPrompt })
   if (!agent) return res.status(404).json({ error: 'Agent not found' })
+  console.log(`agent update: ${agent.id} "${agent.name}"`)
   res.json(agent)
 })
 
 app.delete('/api/agents/:id', (req, res) => {
   const ok = agentStore.remove(req.params.id)
   if (!ok) return res.status(404).json({ error: 'Agent not found' })
+  console.log(`agent delete: ${req.params.id}`)
   res.json({ ok: true })
 })
 
@@ -339,12 +363,15 @@ wss.on('connection', (ws, req) => {
         const { message, sessionId, history, agentId } = msg
 
         if (!currentModelId) {
+          console.warn('WS chat rejected: no model loaded')
           ws.send(JSON.stringify({ type: 'error', message: 'No model loaded' }))
           return
         }
 
+        console.log(`WS chat start: session=${sessionId || '-'} agent=${agentId || 'default'} len=${String(message).length}`)
         // Build history array for QVAC — agent systemPrompt overrides default when provided
         const agent = agentId ? agentStore.getById(agentId) : null
+        if (agentId && !agent) console.warn(`WS chat: unknown agent ${agentId}, using default prompt`)
         const systemContent = agent?.systemPrompt || 'You are Everclaw, a helpful AI assistant. Be concise and helpful.'
         const qvacHistory = [
           { role: 'system' as const, content: systemContent },
@@ -408,8 +435,10 @@ wss.on('connection', (ws, req) => {
             }
           }
 
+          console.log(`WS chat done: session=${sessionId || '-'} agent=${agent?.name || 'default'} tokens=${assistantContent.length} thinking=${thinkingContent.length}`)
           ws.send(JSON.stringify({ type: 'done' }))
         } catch (err: any) {
+          console.error(`WS chat error: ${err.message}`)
           ws.send(JSON.stringify({ type: 'error', message: err.message || 'Completion failed' }))
         }
       }

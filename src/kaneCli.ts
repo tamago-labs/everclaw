@@ -23,6 +23,8 @@ let kanePollingStarted = false
 
 export function refreshKaneStatus(): void {
   const value = kaneStatus()
+  if (!value.available) console.warn('kane status: not available (kane-cli not found)')
+  else if (!value.authenticated) console.warn('kane status: not authenticated (run kane-cli whoami / login)')
   cachedKaneStatus = { value, ts: Date.now() }
 }
 
