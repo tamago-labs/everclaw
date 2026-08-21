@@ -14,7 +14,7 @@ export default function SettingsPage() {
   const [ctxSize, setCtxSize] = useState<number>(8192)
   const [logs, setLogs] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
-  const [kane, setKane] = useState<{ available: boolean; version: string | null; authenticated: boolean } | null>(null)
+  const [kane, setKane] = useState<{ available: boolean; version: string | null; authenticated: boolean; balance: { available: number; total: number } | null } | null>(null)
   const [kaneLoading, setKaneLoading] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
 
@@ -155,6 +155,13 @@ export default function SettingsPage() {
                       <span style={{ color: kane.authenticated ? 'var(--color-accent-primary)' : '#F87171' }}>{kane.authenticated ? 'yes' : 'no'}</span>
                     </span>
                   </Row>
+                  {kane.balance && (
+                    <Row label="Balance">
+                      <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                        {kane.balance.available.toLocaleString()} / {kane.balance.total.toLocaleString()}
+                      </span>
+                    </Row>
+                  )}
 
                   <div className="pt-2 space-y-3">
                     <div className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>CLI hints — click to copy</div>

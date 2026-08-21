@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
 import { motion } from 'framer-motion'
 import { Send, Bot, User, Loader2, X } from 'lucide-react'
-import { getSession, fetchAgents, type Agent } from '../../api'
+import { getSession, fetchAgents, runKane, summarizeKane, saveSessionMessages, type Agent } from '../../api'
 import ChatHeader from './ChatHeader'
 
 interface Message {
@@ -9,6 +9,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   thinking?: string
+  kaneMeta?: any
 }
 
 interface Props {
@@ -25,6 +26,7 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
   const [streamingThinking, setStreamingThinking] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [wsConnected, setWsConnected] = useState(false)
+  const [kaneRunning, setKaneRunning] = useState(false)
   const [agent, setAgent] = useState<Agent | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -126,13 +128,55 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, streamingThinking])
 
-  const handleSend = () => {
-    if (!input.trim() || streaming) return
+  const handleSend = async () => {
+    if (!input.trim() || streaming || kaneRunning) return
+
+    const raw = input.trim()
+
+    // Slash /kane → run kane-cli --agent and feed back via one-shot summarize
+    if (raw.startsWith('/kane ')) {
+      const kaneObjective = raw.slice(6).trim()
+      if (!kaneObjective) return
+      const userMsg: Message = { id: Date.now().toString(), role: 'user', content: raw }
+      setMessages((prev) => [...prev, userMsg])
+      setInput('')
+      setError(null)
+      setKaneRunning(true)
+      try {
+        const runEnd = await runKane(kaneObjective)
+        // One-shot JSON -> human (no persona/session) via /api/ai/summarize
+        let human = ''
+        try {
+          const s = await summarizeKane(runEnd)
+          human = s.text
+        } catch {
+          human = runEnd.summary || runEnd.one_liner || 'Kane run completed'
+        }
+        const assistantMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: human,
+          kaneMeta: runEnd,
+        }
+        setMessages((prev) => {
+          const next = [...prev, assistantMsg]
+          if (sessionIdRef.current) {
+            saveSessionMessages(sessionIdRef.current, next as any).catch(() => {})
+          }
+          return next
+        })
+      } catch (e: any) {
+        setError(e.message || 'Kane run failed')
+      } finally {
+        setKaneRunning(false)
+      }
+      return
+    }
 
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: raw,
     }
 
     setMessages((prev) => [
@@ -238,11 +282,38 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
                       <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--color-text-muted)', animationDelay: '0.3s' }} />
                     </span>
                   ) : null}
+                  {msg.kaneMeta && (
+                    <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'rgba(0,230,138,0.08)', border: '1px solid rgba(0,230,138,0.2)', color: 'var(--color-text-secondary)' }}>
+                      <div className="font-medium mb-1" style={{ color: 'var(--color-accent-primary)' }}>Kane result — {msg.kaneMeta.status} {msg.kaneMeta.duration ? `(${msg.kaneMeta.duration}s)` : ''}</div>
+                      {msg.kaneMeta.summary && <div className="mb-2 whitespace-pre-wrap">{msg.kaneMeta.summary}</div>}
+                      {msg.kaneMeta.final_state && Object.keys(msg.kaneMeta.final_state).length > 0 && (
+                        <div className="mb-2">
+                          <div className="font-medium" style={{ color: 'var(--color-text-primary)' }}>What was found</div>
+                          {Object.entries(msg.kaneMeta.final_state).map(([k, v]) => (
+                            <div key={k} className="flex justify-between gap-2"><span>{k}</span><span style={{ color: 'var(--color-text-primary)' }}>{String(v)}</span></div>
+                          ))}
+                        </div>
+                      )}
+                      {msg.kaneMeta.test_url && <a href={msg.kaneMeta.test_url} target="_blank" rel="noreferrer" className="underline" style={{ color: 'var(--color-accent-primary)' }}>View details</a>}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </Fragment>
           )
         })}
+
+        {kaneRunning && (
+          <div className="flex gap-3">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(0,230,138,0.15)' }}>
+              <Bot size={16} style={{ color: 'var(--color-accent-primary)' }} />
+            </div>
+            <div className="rounded-2xl px-4 py-3 flex items-center gap-2" style={{ background: 'rgba(0,230,138,0.08)', border: '1px solid rgba(0,230,138,0.2)', color: 'var(--color-accent-primary)' }}>
+              <Loader2 size={16} className="animate-spin" />
+              <span className="text-sm">Kane is running…</span>
+            </div>
+          </div>
+        )}
 
         {streaming && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
           <div className="flex gap-3">
@@ -275,23 +346,23 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={wsConnected ? 'Type your message...' : 'Connecting...'}
-            disabled={streaming || !wsConnected}
+            placeholder={wsConnected ? 'Type your message... (/kane <objective> for browser)' : 'Connecting...'}
+            disabled={streaming || kaneRunning || !wsConnected}
             className="flex-1 px-4 py-3 text-sm outline-none"
             style={{
               background: 'rgba(255,255,255,0.05)',
               color: 'var(--color-text-primary)',
-              opacity: streaming ? 0.5 : 1,
+              opacity: streaming || kaneRunning ? 0.5 : 1,
             }}
           />
           <button
             type="submit"
-            disabled={!input.trim() || streaming || !wsConnected}
+            disabled={!input.trim() || streaming || kaneRunning || !wsConnected}
             className="px-4 py-3 transition-all"
             style={{
               background: 'var(--color-accent-primary)',
               color: '#0F1117',
-              opacity: !input.trim() || streaming || !wsConnected ? 0.4 : 1,
+              opacity: !input.trim() || streaming || kaneRunning || !wsConnected ? 0.4 : 1,
             }}
           >
             <Send size={18} />

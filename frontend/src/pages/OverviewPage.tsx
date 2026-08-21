@@ -72,6 +72,12 @@ export default function OverviewPage() {
               <div className="space-y-2 text-sm">
                 <StatusRow icon={kane.available} label="Installed" value={kane.version || 'unknown'} />
                 <StatusRow icon={kane.authenticated} label="Authenticated" value="" />
+                {kane.balance && (
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Balance</span>
+                    <span style={{ color: 'var(--color-text-primary)' }}>{kane.balance.available.toLocaleString()} / {kane.balance.total.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

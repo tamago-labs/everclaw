@@ -7,6 +7,7 @@ export interface Message {
   content: string
   thinking?: string
   timestamp: string
+  kaneMeta?: any
 }
 
 export interface Session {

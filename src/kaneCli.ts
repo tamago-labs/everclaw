@@ -1,6 +1,6 @@
 import { execSync } from 'child_process'
 
-export function kaneStatus(): { available: boolean; version: string | null; authenticated: boolean } {
+export function kaneStatus(): { available: boolean; version: string | null; authenticated: boolean; balance: { available: number; total: number } | null } {
   try {
     const version = execSync('kane-cli --version', { encoding: 'utf-8', timeout: 5000 }).trim()
     let authenticated = false
@@ -10,9 +10,23 @@ export function kaneStatus(): { available: boolean; version: string | null; auth
     } catch {
       authenticated = false
     }
-    return { available: true, version, authenticated }
+    let balance: { available: number; total: number } | null = null
+    if (authenticated) {
+      try {
+        const balRaw = execSync('kane-cli balance', { encoding: 'utf-8', timeout: 5000 })
+        const availM = balRaw.match(/Available credits:\s*([\d.,]+)/i)
+        const totalM = balRaw.match(/Total credits:\s*([\d.,]+)/i)
+        if (availM && totalM) {
+          const parse = (s: string) => Number(s.replace(/,/g, ''))
+          balance = { available: parse(availM[1]), total: parse(totalM[1]) }
+        }
+      } catch {
+        balance = null
+      }
+    }
+    return { available: true, version, authenticated, balance }
   } catch {
-    return { available: false, version: null, authenticated: false }
+    return { available: false, version: null, authenticated: false, balance: null }
   }
 }
 

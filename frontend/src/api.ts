@@ -277,7 +277,33 @@ export async function deleteAgent(id: string): Promise<{ ok: boolean }> {
 
 // ============== Kane CLI ==============
 
-export async function fetchKaneStatus(): Promise<{ available: boolean; version: string | null; authenticated: boolean; modelLoaded: boolean }> {
+export async function fetchKaneStatus(): Promise<{ available: boolean; version: string | null; authenticated: boolean; modelLoaded: boolean; balance: { available: number; total: number } | null }> {
   const res = await fetch(`${API_BASE}/kane/status`)
+  return res.json()
+}
+
+export async function runKane(objective: string, url?: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/kane/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ objective, url }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Kane run failed')
+  }
+  return res.json()
+}
+
+export async function summarizeKane(kaneJson: any): Promise<{ text: string }> {
+  const res = await fetch(`${API_BASE}/ai/summarize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kaneJson }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Summarize failed')
+  }
   return res.json()
 }

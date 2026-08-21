@@ -331,6 +331,79 @@ app.delete('/api/agents/:id', (req, res) => {
   res.json({ ok: true })
 })
 
+// ============== Kane run (slash /kane) ==============
+
+app.post('/api/kane/run', async (req, res) => {
+  const { objective, url } = req.body
+  if (!objective?.trim()) return res.status(400).json({ error: 'objective required' })
+  const kaneStatus = getKaneStatus()
+  if (!kaneStatus.available) return res.status(503).json({ error: 'Kane CLI not available' })
+  if (!kaneStatus.authenticated) return res.status(401).json({ error: 'Kane not authenticated — run kane-cli login' })
+  if (kaneStatus.balance && kaneStatus.balance.available < 5) return res.status(402).json({ error: `Low credits: ${kaneStatus.balance.available}` })
+  const targetUrl = url || 'http://localhost:3001'
+  try {
+    const { execSync } = await import('child_process')
+    // Use JSON.stringify to safely quote objective and url for shell
+    const cmd = `kane-cli run ${JSON.stringify(objective)} --agent --url ${JSON.stringify(targetUrl)} --timeout 600`
+    console.log(`kane run: ${objective.slice(0, 80)}...`)
+    const out = execSync(cmd, {
+      encoding: 'utf-8',
+      env: { ...process.env, KANE_CLI_USER_AGENT: process.env.KANE_CLI_USER_AGENT || 'everclaw' },
+      timeout: 620000,
+      maxBuffer: 10 * 1024 * 1024,
+    }) as string
+    const lines = out.trim().split('\n').filter(Boolean)
+    let runEnd: any = null
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const obj = JSON.parse(lines[i])
+        if (obj.type === 'run_end') { runEnd = obj; break }
+      } catch {}
+    }
+    if (!runEnd) {
+      console.error('kane run: no run_end in output')
+      return res.status(500).json({ error: 'No run_end from kane' })
+    }
+    console.log(`kane run done: ${runEnd.status} ${runEnd.duration}s`)
+    res.json(runEnd)
+  } catch (err: any) {
+    console.error(`kane run error: ${err.message}`)
+    res.status(500).json({ error: err.message || 'kane run failed' })
+  }
+})
+
+// One-shot JSON<>human translator (no persona, no session)
+app.post('/api/ai/summarize', async (req, res) => {
+  const { kaneJson, text } = req.body
+  if (!currentModelId) return res.status(400).json({ error: 'No model loaded' })
+  let systemPrompt: string
+  let userContent: string
+  if (kaneJson) {
+    systemPrompt = 'You are a translator. Input is Kane run_end JSON. Output a concise 2-4 line human summary. Include what was done, result (passed/failed), and any extracted values from final_state. No persona, no extra formatting, plain paragraphs. Limit to 300 tokens.'
+    userContent = typeof kaneJson === 'string' ? kaneJson : JSON.stringify(kaneJson)
+  } else if (text) {
+    systemPrompt = 'You are a translator. Input is human text. Output minimal JSON {objective, url}. No persona, no extra text.'
+    userContent = text
+  } else {
+    return res.status(400).json({ error: 'kaneJson or text required' })
+  }
+  try {
+    const run = completion({
+      modelId: currentModelId,
+      history: [{ role: 'system' as const, content: systemPrompt }, { role: 'user' as const, content: userContent }],
+      stream: false,
+      kvCache: false,
+      captureThinking: false,
+    } as any)
+    const out = await (run as any).text
+    const cleaned = typeof out === 'string' ? out.trim() : String(out).trim()
+    res.json({ text: cleaned })
+  } catch (err: any) {
+    console.error(`summarize error: ${err.message}`)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ============== Kane status ==============
 
 // Kane status
