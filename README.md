@@ -5,15 +5,17 @@
 
 **Enables Private Local AI + Browser Automation with kane-cli**
 
-<img width="1863" height="807" alt="Screenshot 2026-08-21 232953" src="https://github.com/user-attachments/assets/3264e108-76b1-445b-9040-92f4bb7573c2" />
+Everclaw is a local-first application that combines **on-device AI inference via the Tether QVAC SDK** with **browser automation through kane-cli**. The web UI runs at http://localhost:3001, while all Everclaw data is stored locally under ~/.everclaw.
 
-Everclaw is a local-first desktop app that pairs on-device AI inference (Tether QVAC SDK) with kane-cli browser automation. The web UI runs on `http://localhost:3001` and keeps all data under `~/.everclaw`. No cloud, no API keys, no per-token billing.
+**No cloud AI APIs. No per-token billing. Your data stays on your machine.**
+
+<img width="1863" height="807" alt="Screenshot 2026-08-21 232953" src="https://github.com/user-attachments/assets/3264e108-76b1-445b-9040-92f4bb7573c2" />
 
 ## Overview
 
-Everclaw runs a local LLM for chat and hands browser tasks to kane-cli when you type `/kane` in chat. Cron jobs automate `kane testmd` runs on a schedule, each result appearing as a `Cron: <name>` session. Variables inject credentials locally and never leave the machine.
+Everclaw connects two capabilities that are usually separated: local AI inference and browser automation. QVAC runs the intelligence on-device, while kane-cli gives that intelligence access to a real browser. Together, they enable private AI workflows that can interact with websites, persist across sessions, and run automatically on a schedule.
 
-The CLI serves the API, streams chat via WebSocket, polls kane-cli status, and serves the built frontend (`frontend/out`) in production.
+Use Everclaw to chat with local models, delegate browser tasks, create persistent agents, or schedule recurring workflows with Cron. Tasks can handle everything from app testing and website checks to product monitoring and other repetitive browser work, while credentials and Variables remain stored locally on your machine.
 
 ## Highlights
 
