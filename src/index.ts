@@ -440,11 +440,15 @@ async function runCronJob(job: any): Promise<void> {
     let runEnd: any = null
     let shareUrl: string | null = null
     let overallStatus: string | null = null
+    let runLineBuf = ''
     child.stdout.on('data', (c: Buffer) => {
-      const t = c.toString()
-      stdout += t
-      for (const line of t.split('\n')) {
-        const s = line.trim()
+      const chunk = c.toString()
+      stdout += chunk
+      runLineBuf += chunk
+      let nl
+      while ((nl = runLineBuf.indexOf('\n')) !== -1) {
+        const s = runLineBuf.slice(0, nl).trim()
+        runLineBuf = runLineBuf.slice(nl + 1)
         if (!s) continue
         try {
           const o = JSON.parse(s)
@@ -452,6 +456,33 @@ async function runCronJob(job: any): Promise<void> {
           // testmd run reports its shareable Test Manager link via test_md_done / test_md_summary
           else if ((o.type === 'test_md_done' || o.type === 'test_md_summary') && o.share_url) shareUrl = o.share_url
           else if (o.type === 'test_md_done' && o.overall_status) overallStatus = o.overall_status
+          else if (o.type === 'ask_user') {
+            const question: string = o.question || ''
+            console.warn(`cron ask_user: ${question.slice(0, 120)}`)
+            const qLower = question.toLowerCase()
+            let answer: string | null = null
+            const asksUsername = qLower.includes('username') || qLower.includes('email')
+            const asksPassword = qLower.includes('password')
+            if (asksUsername && asksPassword && (kaneVars as any)['username'] && (kaneVars as any)['password']) {
+              answer = `${(kaneVars as any)['username'].value} ${(kaneVars as any)['password'].value}`
+            } else {
+              for (const name of Object.keys(kaneVars)) {
+                if (qLower.includes(name.toLowerCase()) && (kaneVars as any)[name]) { answer = (kaneVars as any)[name].value; break }
+              }
+              if (!answer) {
+                if (qLower.includes('username') && (kaneVars as any)['username']) answer = (kaneVars as any)['username'].value
+                else if (qLower.includes('password') && (kaneVars as any)['password']) answer = (kaneVars as any)['password'].value
+                else if (qLower.includes('api_key') && (kaneVars as any)['api_key']) answer = (kaneVars as any)['api_key'].value
+              }
+            }
+            if (answer && (child as any).stdin) {
+              console.log(`cron ask_user auto-answer: ${question.slice(0, 60)} -> (masked)`)
+              try { (child as any).stdin.write(JSON.stringify({ type: 'user_response', answer }) + '\n') } catch {}
+            } else {
+              console.warn(`cron ask_user no auto-answer — cancelling in 30s (headless cron)`)
+              setTimeout(() => { try { (child as any).stdin.write(JSON.stringify({ type: 'cancel' }) + '\n') } catch {} }, 30000)
+            }
+          }
           else if (o.step !== undefined) console.log(`cron step ${o.step}: ${o.status} ${o.remark || ''}`.slice(0, 200))
           else if (o.type) console.log(`cron ${o.type}`)
         } catch {}
