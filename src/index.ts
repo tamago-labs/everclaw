@@ -440,10 +440,11 @@ app.post('/api/ai/summarize', async (req, res) => {
       history: [{ role: 'system' as const, content: systemPrompt }, { role: 'user' as const, content: userContent }],
       stream: false,
       kvCache: false,
-      captureThinking: false,
+      captureThinking: true,
     } as any)
     const out = await (run as any).text
-    const cleaned = typeof out === 'string' ? out.trim() : String(out).trim()
+    const raw = typeof out === 'string' ? out : String(out)
+    const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
     res.json({ text: cleaned })
   } catch (err: any) {
     console.error(`summarize error: ${err.message}`)
