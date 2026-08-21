@@ -14,8 +14,25 @@ export default function ModelSelectPage() {
   const [displayPercent, setDisplayPercent] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [showCustomModal, setShowCustomModal] = useState(false)
+  const [modelsLoading, setModelsLoading] = useState(true)
+  const [modelsError, setModelsError] = useState<string | null>(null)
+  const [modelsRetry, setModelsRetry] = useState(0)
 
-  const loadModels = () => fetchModels().then((r) => setModels(r.models))
+  const loadModels = async () => {
+    setModelsLoading(true)
+    setModelsError(null)
+    try {
+      const r = await fetchModels()
+      setModels(r.models)
+      setModelsRetry(0)
+    } catch (e: any) {
+      const msg = e.message?.includes('Failed to fetch') ? 'Backend not reachable — is the CLI running on :3001?' : e.message
+      setModelsError(msg)
+      setModelsRetry((c) => c + 1)
+    } finally {
+      setModelsLoading(false)
+    }
+  }
   useEffect(() => { loadModels() }, [])
 
   const builtinModels = models.filter((m) => m.builtin)
@@ -59,7 +76,12 @@ export default function ModelSelectPage() {
   }, [loading, progress])
 
   const handleRemove = async (id: string) => {
-    await removeCustomModel(id)
+    try {
+      await removeCustomModel(id)
+    } catch (e: any) {
+      setError(e.message?.includes('Failed to fetch') ? 'Server not reachable — retry' : e.message)
+      return
+    }
     if (selectedId === id) setSelectedId(null)
     await loadModels()
   }
@@ -73,6 +95,26 @@ export default function ModelSelectPage() {
         transition={{ duration: 0.4, ease: 'easeOut' }}
       >
         <WelcomeCard />
+
+        {/* Backend offline / connecting */}
+        {modelsLoading && models.length === 0 && !modelsError && (
+          <div className="glass p-4 mb-6 flex items-center gap-3">
+            <div className="w-5 h-5 border-2 rounded-full animate-spin shrink-0" style={{ borderColor: 'var(--color-accent-primary)', borderTopColor: 'transparent' }} />
+            <div>
+              <div className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Connecting to AI server…</div>
+              <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Retrying{modelsRetry ? ` (attempt ${modelsRetry + 1})` : ''} — starts with the CLI on :3001</div>
+            </div>
+          </div>
+        )}
+        {modelsError && models.length === 0 && (
+          <div className="p-4 rounded-xl mb-6 flex items-center justify-between gap-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }}>
+            <div>
+              <div className="text-sm font-medium" style={{ color: '#F87171' }}>Server offline</div>
+              <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{modelsError}</div>
+            </div>
+            <button onClick={loadModels} className="px-4 py-2 rounded-xl text-sm font-medium shrink-0" style={{ background: 'var(--color-accent-primary)', color: '#0F1117' }}>Retry</button>
+          </div>
+        )}
 
         {/* Registry model cards */}
         <div className="grid grid-cols-2 gap-3 mb-6">

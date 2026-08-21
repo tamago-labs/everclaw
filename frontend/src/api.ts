@@ -1,5 +1,22 @@
 const API_BASE = '/api'
 
+// Retry on network failure (ECONNREFUSED when cli not yet up)
+async function fetchWithRetry(input: string, init?: RequestInit, retries = 5): Promise<Response> {
+  let lastErr: any
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fetch(input, init)
+    } catch (e: any) {
+      lastErr = e
+      // Only retry on network errors (Failed to fetch), not HTTP errors
+      if (i < retries) {
+        await new Promise((r) => setTimeout(r, 800 * Math.pow(1.6, i)))
+      }
+    }
+  }
+  throw lastErr
+}
+
 export interface AiStatus {
   loaded: boolean
   model: string | null
@@ -24,12 +41,14 @@ export interface ModelEntry {
 }
 
 export async function fetchAiStatus(): Promise<AiStatus> {
-  const res = await fetch(`${API_BASE}/ai/status`)
+  const res = await fetchWithRetry(`${API_BASE}/ai/status`, undefined, 5)
+  if (!res.ok) throw new Error(`AI status ${res.status}`)
   return res.json()
 }
 
 export async function fetchModels(): Promise<{ models: ModelEntry[]; config: any }> {
-  const res = await fetch(`${API_BASE}/ai/models`)
+  const res = await fetchWithRetry(`${API_BASE}/ai/models`, undefined, 5)
+  if (!res.ok) throw new Error(`Models ${res.status}`)
   return res.json()
 }
 
@@ -82,7 +101,7 @@ export function loadModelSSE(
 ) {
   const controller = new AbortController()
 
-  fetch(`${API_BASE}/ai/load`, {
+  fetchWithRetry(`${API_BASE}/ai/load`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ modelId, ctx_size }),
@@ -123,7 +142,8 @@ export function loadModelSSE(
     }
   }).catch((err) => {
     if (err.name !== 'AbortError') {
-      onError(err.message)
+      const isNetwork = err.message?.includes('Failed to fetch') || err.message?.includes('ECONNREFUSED')
+      onError(isNetwork ? 'Server not reachable — is the CLI running on :3001? (retry)' : err.message)
     }
   })
 

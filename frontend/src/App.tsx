@@ -10,12 +10,14 @@ import ModelSelectPage from './pages/ModelSelectPage'
 import { useAI } from './context/AIContext'
 
 function AppRoutes() {
-  const { status, loading } = useAI()
+  const { status, loading, error, retryCount } = useAI()
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-base)' }}>
-        <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Connecting to CLI...</div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3" style={{ background: 'var(--color-bg-base)' }}>
+        <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--color-accent-primary)', borderTopColor: 'transparent' }} />
+        <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Connecting to CLI...{retryCount ? ` retry ${retryCount}` : ''}</div>
+        {error && <div className="text-xs" style={{ color: 'rgba(239,68,68,0.8)' }}>{error}</div>}
       </div>
     )
   }
