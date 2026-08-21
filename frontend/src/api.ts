@@ -275,6 +275,57 @@ export async function deleteAgent(id: string): Promise<{ ok: boolean }> {
   return res.json()
 }
 
+// ============== Variables ==============
+
+export interface Variable {
+  id: string
+  name: string
+  value: string
+  secret: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export async function fetchVariables(): Promise<{ variables: Variable[] }> {
+  const res = await fetch(`${API_BASE}/variables`)
+  return res.json()
+}
+
+export async function createVariable(data: { name: string; value: string; secret?: boolean }): Promise<Variable> {
+  const res = await fetch(`${API_BASE}/variables`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to create variable')
+  }
+  return res.json()
+}
+
+export async function updateVariable(id: string, patch: { name?: string; value?: string; secret?: boolean }): Promise<Variable> {
+  const res = await fetch(`${API_BASE}/variables/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to update variable')
+  }
+  return res.json()
+}
+
+export async function deleteVariable(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_BASE}/variables/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to delete variable')
+  }
+  return res.json()
+}
+
 // ============== Kane CLI ==============
 
 export async function fetchKaneStatus(): Promise<{ available: boolean; version: string | null; authenticated: boolean; modelLoaded: boolean; balance: { available: number; total: number } | null }> {

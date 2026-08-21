@@ -90,7 +90,7 @@ export default function SessionsTable({ sessions, loading, onOpen, onRemove, onC
           <div className="text-center text-xs" style={{ color: 'var(--color-text-muted)' }}>{relativeTime(s.updatedAt)}</div>
 
           <div className="flex items-center justify-end gap-2">
-            <GlassButton icon={<ExternalLink size={14} />} label="Open" title="Open chat" variant="success" onClick={() => onOpen(s.id)} />
+            <GlassButton icon={<ExternalLink size={14} />} label="Open" title="Open chat" onClick={() => onOpen(s.id)} />
             {s.default ? (
               <GlassButton icon={<Trash2 size={14} />} variant="danger" title="Clear messages" iconOnly onClick={() => onClear(s)} />
             ) : (

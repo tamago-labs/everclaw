@@ -25,6 +25,7 @@ import {
 import { ModelStore } from './modelStore.js'
 import { SessionStore, type Message } from './sessionStore.js'
 import { AgentStore } from './agentStore.js'
+import { VariableStore } from './variableStore.js'
 import { getKaneStatus, startKaneStatusPolling } from './kaneCli.js'
 
 
@@ -51,6 +52,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const server = createServer(app)
 const PORT = Number(process.env.PORT) || 3001
+
+// Active Kane runs for ask_user bridging (runId -> child)
+const activeKaneRuns = new Map<string, any>()
+let wssRef: WebSocketServer | null = null
 
 // kane-cli runtime identity (inherited by every spawn)
 process.env.KANE_CLI_USER_AGENT = process.env.KANE_CLI_USER_AGENT || 'everclaw'
@@ -82,6 +87,7 @@ function ensureQvacConfig() {
 const modelStore = new ModelStore(userDataPath)
 const sessionStore = new SessionStore(userDataPath)
 const agentStore = new AgentStore(userDataPath)
+const variableStore = new VariableStore(userDataPath)
 
 // --- Registry Sources ---
 const REGISTRY_SOURCES: Record<string, any> = {
@@ -331,6 +337,43 @@ app.delete('/api/agents/:id', (req, res) => {
   res.json({ ok: true })
 })
 
+// ============== Variables ==============
+
+app.get('/api/variables', (_req, res) => {
+  res.json({ variables: variableStore.getAll() })
+})
+
+app.post('/api/variables', (req, res) => {
+  const { name, value, secret } = req.body
+  if (!name?.trim() || value === undefined) return res.status(400).json({ error: 'name and value required' })
+  try {
+    const v = variableStore.add({ name, value, secret })
+    console.log(`variable add: ${v.name} secret=${v.secret}`)
+    res.json(v)
+  } catch (e: any) {
+    res.status(400).json({ error: e.message })
+  }
+})
+
+app.put('/api/variables/:id', (req, res) => {
+  const { name, value, secret } = req.body
+  try {
+    const v = variableStore.update(req.params.id, { name, value, secret })
+    if (!v) return res.status(404).json({ error: 'Variable not found' })
+    console.log(`variable update: ${v.name}`)
+    res.json(v)
+  } catch (e: any) {
+    res.status(400).json({ error: e.message })
+  }
+})
+
+app.delete('/api/variables/:id', (req, res) => {
+  const ok = variableStore.remove(req.params.id)
+  if (!ok) return res.status(404).json({ error: 'Variable not found' })
+  console.log(`variable delete: ${req.params.id}`)
+  res.json({ ok: true })
+})
+
 // ============== Kane run (slash /kane) ==============
 
 app.post('/api/kane/run', async (req, res) => {
@@ -340,22 +383,53 @@ app.post('/api/kane/run', async (req, res) => {
   if (!kaneStatus.available) return res.status(503).json({ error: 'Kane CLI not available' })
   if (!kaneStatus.authenticated) return res.status(401).json({ error: 'Kane not authenticated — run kane-cli login' })
   if (kaneStatus.balance && kaneStatus.balance.available < 5) return res.status(402).json({ error: `Low credits: ${kaneStatus.balance.available}` })
+  const runId = `kane_${Date.now()}_${Math.random().toString(36).slice(2, 4)}`
   const targetUrl = url || 'http://localhost:3001'
   // --headless default true as requested (was headed and caused focus freeze)
   const useHeadless = headless !== false
   const args = ['run', objective, '--agent', '--url', targetUrl, '--timeout', '600']
   if (useHeadless) args.push('--headless')
+  // Composite local variables as {{name}} for kane --variables-file (avoids shell quoting of JSON)
+  const kaneVars = variableStore.toKaneVariables()
+  let tmpVarsPath: string | null = null
+  const neededPlaceholders: string[] = [...new Set([...objective.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]))]
+  if (neededPlaceholders.length > 0) {
+    const varStatuses = neededPlaceholders.map((name) => {
+      const v = (kaneVars as any)[name]
+      if (v) return `{{${name}}} found${v.secret ? ' (masked)' : ''}`
+      return `{{${name}}} MISSING`
+    })
+    const hasMissing = varStatuses.some((s) => s.includes('MISSING'))
+    const logFn = hasMissing ? console.warn.bind(console) : console.log.bind(console)
+    logFn(`kane vars needed: ${varStatuses.join(', ')}`)
+    if (hasMissing) console.warn(`kane vars hint: add missing variables in Variables page`)
+  } else {
+    console.log(`kane vars: none needed for this objective`)
+  }
+  if (Object.keys(kaneVars).length > 0) {
+    const varsJson = JSON.stringify(kaneVars)
+    const hasPlaceholders = Object.keys(kaneVars).some((k) => objective.includes(`{{${k}}}`))
+    if (hasPlaceholders) console.log(`kane variables: ${Object.keys(kaneVars).join(', ')} (masked)`)
+    else console.log(`kane vars file: ${Object.keys(kaneVars).length} vars stored but not used in objective`)
+    tmpVarsPath = path.join(userDataPath, `kane-vars-${Date.now()}.json`)
+    try { fs.writeFileSync(tmpVarsPath, varsJson) } catch {}
+    args.push('--variables-file', tmpVarsPath)
+  } else {
+    console.log(`kane vars: none (no variables stored)`)
+  }
   console.log(`kane run: ${objective.slice(0, 80)}... headless=${useHeadless}`)
   try {
     const { spawn } = await import('child_process')
     const child = spawn('kane-cli', args, {
       env: { ...process.env, KANE_CLI_USER_AGENT: process.env.KANE_CLI_USER_AGENT || 'everclaw' },
       shell: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],
     })
+    activeKaneRuns.set(runId, child)
     let stdout = ''
     let stderr = ''
     let runEnd: any = null
+    let askUserCancelTimer: NodeJS.Timeout | null = null
     const killTimer = setTimeout(() => {
       try { child.kill() } catch {}
     }, 620000)
@@ -371,6 +445,50 @@ app.post('/api/kane/run', async (req, res) => {
           if (obj.type === 'run_end') {
             runEnd = obj
             console.log(`kane run_end: ${obj.status} ${obj.duration}s`)
+          } else if (obj.type === 'ask_user') {
+            const question: string = obj.question || ''
+            console.warn(`kane ask_user: Step ${obj.step_index ?? '?'} — ${question.slice(0, 200)}`)
+            // Option B: allow sequential asks — each ask gets its own answer; if question asks for both, answer with combined value
+            const qLower = question.toLowerCase()
+            let answer: string | null = null
+            const asksUsername = qLower.includes('username') || qLower.includes('email')
+            const asksPassword = qLower.includes('password')
+            if (asksUsername && asksPassword && (kaneVars as any)['username'] && (kaneVars as any)['password']) {
+              // Kane asked for both at once — send as "username\npassword" (kane splits on whitespace/newline)
+              answer = `${(kaneVars as any)['username'].value} ${(kaneVars as any)['password'].value}`
+            } else {
+              for (const name of neededPlaceholders) {
+                if (qLower.includes(name.toLowerCase()) && (kaneVars as any)[name]) {
+                  answer = (kaneVars as any)[name].value
+                  break
+                }
+              }
+              if (!answer) {
+                if (qLower.includes('username') && (kaneVars as any)['username']) answer = (kaneVars as any)['username'].value
+                else if (qLower.includes('email') && (kaneVars as any)['username']) answer = (kaneVars as any)['username'].value
+                else if (qLower.includes('password') && (kaneVars as any)['password']) answer = (kaneVars as any)['password'].value
+                else if (qLower.includes('api_key') && (kaneVars as any)['api_key']) answer = (kaneVars as any)['api_key'].value
+              }
+            }
+            if (answer && child.stdin) {
+              console.log(`kane ask_user auto-answer: ${question.slice(0, 60)} -> (masked)`)
+              try { child.stdin.write(JSON.stringify({ type: 'user_response', answer }) + '\n') } catch {}
+              if (askUserCancelTimer) { clearTimeout(askUserCancelTimer); askUserCancelTimer = null }
+            } else {
+              console.warn(`kane ask_user no auto-answer, will cancel in 20s if no frontend answer (add {{variable}} per cookbook)`)
+              // Broadcast to frontend so loading indicator becomes prompt
+              if (wssRef) {
+                const payload = JSON.stringify({ type: 'kane_ask', runId, question, step: obj.step_index })
+                wssRef.clients.forEach((c: any) => { try { if (c.readyState === 1) c.send(payload) } catch {} })
+              }
+              if (!askUserCancelTimer) {
+                askUserCancelTimer = setTimeout(() => {
+                  try { child.stdin.write(JSON.stringify({ type: 'cancel' }) + '\n') } catch {}
+                  console.warn(`kane ask_user cancel sent`)
+                  activeKaneRuns.delete(runId)
+                }, 20000)
+              }
+            }
           } else if (obj.step !== undefined) {
             console.log(`kane step ${obj.step}: ${obj.status} ${obj.remark || ''}`.slice(0, 200))
           } else if (obj.type === 'bifurcation') {
@@ -389,8 +507,12 @@ app.post('/api/kane/run', async (req, res) => {
 
     child.on('close', (code) => {
       clearTimeout(killTimer)
+      if (askUserCancelTimer) clearTimeout(askUserCancelTimer)
+      activeKaneRuns.delete(runId)
+      if (tmpVarsPath) try { fs.unlinkSync(tmpVarsPath) } catch {}
       if (runEnd) {
         console.log(`kane run done: ${runEnd.status} ${runEnd.duration}s`)
+        if (wssRef) wssRef.clients.forEach((c: any) => { try { if (c.readyState === 1) c.send(JSON.stringify({ type: 'kane_done', runId })) } catch {} })
         res.json(runEnd)
       } else if (code !== 0) {
         console.error(`kane run failed code=${code} stderr=${stderr.slice(0, 500)}`)
@@ -416,6 +538,26 @@ app.post('/api/kane/run', async (req, res) => {
   } catch (err: any) {
     console.error(`kane run error: ${err.message}`)
     if (!res.headersSent) res.status(500).json({ error: err.message || 'kane run failed' })
+  }
+})
+
+// Kane ask_user answer bridge (frontend -> child stdin)
+app.post('/api/kane/respond', (req, res) => {
+  const { runId, answer, cancel } = req.body as { runId?: string; answer?: string; cancel?: boolean }
+  if (!runId) return res.status(400).json({ error: 'runId required' })
+  const child: any = activeKaneRuns.get(runId)
+  if (!child || !child.stdin) return res.status(404).json({ error: 'Run not found or already finished' })
+  try {
+    if (cancel) {
+      child.stdin.write(JSON.stringify({ type: 'cancel' }) + '\n')
+      console.log(`kane respond cancel: ${runId}`)
+    } else if (answer !== undefined) {
+      child.stdin.write(JSON.stringify({ type: 'user_response', answer }) + '\n')
+      console.log(`kane respond answer: ${runId} -> (masked)`)
+    }
+    res.json({ ok: true })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
   }
 })
 
@@ -468,6 +610,7 @@ app.get('/api/kane/status', (_req, res) => {
 // ============== WebSocket ==============
 
 const wss = new WebSocketServer({ server })
+wssRef = wss
 
 wss.on('connection', (ws, req) => {
   console.log('  WS client connected from', req.socket.remoteAddress)
@@ -562,6 +705,21 @@ wss.on('connection', (ws, req) => {
           console.error(`WS chat error: ${err.message}`)
           ws.send(JSON.stringify({ type: 'error', message: err.message || 'Completion failed' }))
         }
+      } else if (msg.type === 'kane_answer') {
+        const { runId, answer, cancel } = msg as any
+        const child: any = activeKaneRuns.get(runId)
+        if (!child || !child.stdin) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Run not found' }))
+          return
+        }
+        if (cancel) {
+          try { child.stdin.write(JSON.stringify({ type: 'cancel' }) + '\n') } catch {}
+          console.log(`kane WS cancel: ${runId}`)
+        } else {
+          try { child.stdin.write(JSON.stringify({ type: 'user_response', answer }) + '\n') } catch {}
+          console.log(`kane WS answer: ${runId} -> (masked)`)
+        }
+        ws.send(JSON.stringify({ type: 'kane_answer_ok', runId }))
       }
     } catch (err) {
       console.error('WS message error:', err)

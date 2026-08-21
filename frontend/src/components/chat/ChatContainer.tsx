@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
 import { motion } from 'framer-motion'
 import { Send, Bot, User, Loader2, X } from 'lucide-react'
-import { getSession, fetchAgents, runKane, summarizeKane, saveSessionMessages, type Agent } from '../../api'
+import { getSession, fetchAgents, fetchVariables, runKane, summarizeKane, saveSessionMessages, type Agent, type Variable } from '../../api'
 import ChatHeader from './ChatHeader'
 
 interface Message {
@@ -30,6 +30,10 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
   const [showKaneUrlModal, setShowKaneUrlModal] = useState(false)
   const [kanePendingObjective, setKanePendingObjective] = useState<string | null>(null)
   const [kaneUrlInput, setKaneUrlInput] = useState('http://localhost:3001')
+  const [kaneVars, setKaneVars] = useState<Variable[]>([])
+  const [kaneAsk, setKaneAsk] = useState<{ runId: string; question: string; step?: number } | null>(null)
+  const [kaneAskAnswer, setKaneAskAnswer] = useState('')
+  const [kaneAskCountdown, setKaneAskCountdown] = useState(20)
   const [agent, setAgent] = useState<Agent | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -44,6 +48,24 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
     if (!agentId) { setAgent(null); return }
     fetchAgents().then((r) => setAgent(r.agents.find((a) => a.id === agentId) || null)).catch(() => setAgent(null))
   }, [agentId])
+
+  useEffect(() => {
+    if (showKaneUrlModal) {
+      fetchVariables().then((r) => setKaneVars(r.variables)).catch(() => setKaneVars([]))
+    }
+  }, [showKaneUrlModal])
+
+  useEffect(() => {
+    if (!kaneAsk) return
+    setKaneAskCountdown(20)
+    const id = setInterval(() => {
+      setKaneAskCountdown((c) => {
+        if (c <= 1) { clearInterval(id); return 0 }
+        return c - 1
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [kaneAsk?.runId])
 
   // Load messages when session changes
   useEffect(() => {
@@ -99,6 +121,10 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
           } else if (data.type === 'error') {
             setError(data.message)
             setStreaming(false)
+          } else if (data.type === 'kane_ask') {
+            setKaneAsk({ runId: data.runId, question: data.question, step: data.step })
+          } else if (data.type === 'kane_done') {
+            setKaneAsk(null)
           }
         } catch {}
       }
@@ -265,6 +291,20 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
     setKanePendingObjective(null)
   }
 
+  const handleKaneAskSubmit = () => {
+    if (!kaneAsk || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+    wsRef.current.send(JSON.stringify({ type: 'kane_answer', runId: kaneAsk.runId, answer: kaneAskAnswer }))
+    setKaneAsk(null)
+    setKaneAskAnswer('')
+  }
+
+  const handleKaneAskCancel = () => {
+    if (!kaneAsk || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+    wsRef.current.send(JSON.stringify({ type: 'kane_answer', runId: kaneAsk.runId, cancel: true }))
+    setKaneAsk(null)
+    setKaneAskAnswer('')
+  }
+
   const showKaneHint = input.trim().startsWith('/')
 
   return (
@@ -420,7 +460,7 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={wsConnected ? 'Type your message... (/kane <browser task>)' : 'Connecting...'}
+            placeholder={wsConnected ? 'Type a message or /kane <task> — see Overview for examples' : 'Connecting...'}
             disabled={streaming || kaneRunning || !wsConnected}
             className="flex-1 px-4 py-3 text-sm outline-none"
             style={{
@@ -450,7 +490,31 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
           <div className="glass w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <div className="relative z-10 space-y-4">
               <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Kane start URL</h3>
-              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Objective: <code style={{ color: 'var(--color-text-primary)' }}>{kanePendingObjective}</code></p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                Objective:{' '}
+                <code style={{ color: 'var(--color-text-primary)' }}>
+                  {kanePendingObjective
+                    ? kaneVars.reduce((acc, v) => {
+                        const placeholder = `{{${v.name}}}`
+                        if (acc.includes(placeholder)) {
+                          return acc.replaceAll(placeholder, v.secret ? '****' : v.value)
+                        }
+                        return acc
+                      }, kanePendingObjective)
+                    : ''}
+                </code>
+              </p>
+              {kaneVars.filter((v) => kanePendingObjective?.includes(`{{${v.name}}}`)).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {kaneVars
+                    .filter((v) => kanePendingObjective?.includes(`{{${v.name}}}`))
+                    .map((v) => (
+                      <span key={v.id} className="text-xs px-2 py-1 rounded-full font-mono" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-border-default)', color: v.secret ? '#F59E0B' : 'var(--color-accent-primary)' }}>
+                        {`{{${v.name}}}`} → {v.secret ? '****' : v.value}
+                      </span>
+                    ))}
+                </div>
+              )}
               <input
                 type="text"
                 value={kaneUrlInput}
@@ -460,9 +524,46 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                 autoFocus
               />
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
+                Variables from <code>Variables</code> page are sent to CLI — <code>{'{{username}}'}</code> → <code>****</code> if secret. Default <code>http://localhost:3001</code>.
+              </p>
               <div className="flex gap-2 justify-end">
                 <button onClick={handleKaneCancel} className="px-4 py-2 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-default)' }}>Cancel</button>
                 <button onClick={handleKaneConfirm} className="px-4 py-2 rounded-xl text-sm font-medium" style={{ background: 'var(--color-accent-primary)', color: '#0F1117' }}>Run Kane</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kane ask_user modal — shows when kane needs password/username and auto-answer missed */}
+      {kaneAsk && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>
+          <div className="glass w-full max-w-md p-5">
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Kane needs input</h3>
+                <span className="text-xs font-mono px-2 py-1 rounded-full" style={{ background: kaneAskCountdown <= 5 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)', color: kaneAskCountdown <= 5 ? '#F87171' : 'var(--color-text-muted)' }}>
+                  cancel in {kaneAskCountdown}s
+                </span>
+              </div>
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{kaneAsk.question}</p>
+              <input
+                type={kaneAsk.question.toLowerCase().includes('password') ? 'password' : 'text'}
+                value={kaneAskAnswer}
+                onChange={(e) => setKaneAskAnswer(e.target.value)}
+                placeholder={kaneAsk.question.toLowerCase().includes('password') ? 'Enter password' : 'Enter value'}
+                className="w-full px-3 py-2 text-sm rounded-xl outline-none"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter' && kaneAskAnswer.trim()) handleKaneAskSubmit() }}
+              />
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
+                Auto-answer tried {'{{username}}'}/{'{{password}}'} from Variables but Kane still asks — enter manually or check Variables have correct values.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button onClick={handleKaneAskCancel} className="px-4 py-2 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-default)' }}>Cancel Kane</button>
+                <button onClick={handleKaneAskSubmit} disabled={!kaneAskAnswer.trim()} className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-40" style={{ background: 'var(--color-accent-primary)', color: '#0F1117' }}>Send</button>
               </div>
             </div>
           </div>

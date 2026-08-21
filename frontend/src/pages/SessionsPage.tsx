@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { List } from 'lucide-react'
 import SessionsTable from '../components/sessions/SessionsTable'
 import { fetchSessions, deleteSession, clearSessionMessages, type Session } from '../api'
 
@@ -53,10 +54,11 @@ export default function SessionsPage() {
     <div className="p-8">
       <div className="max-w-5xl mx-auto">
         <motion.h1
-          className="text-2xl font-bold text-gradient-white mb-1"
+          className="text-2xl font-bold text-gradient-white mb-1 flex items-center gap-2"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
+          <List size={22} style={{ color: 'var(--color-accent-primary)' }} />
           Sessions
         </motion.h1>
         <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>
