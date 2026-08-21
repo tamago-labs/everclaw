@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
 import { motion } from 'framer-motion'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
-import { getSession, clearSessionMessages } from '../../api'
+import { getSession } from '../../api'
 import ChatHeader from './ChatHeader'
 
 interface Message {
@@ -147,23 +147,9 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
     }))
   }
 
-  const handleClear = async () => {
-    const id = sessionIdRef.current
-    if (!id) return
-    try {
-      await clearSessionMessages(id)
-      setMessages([])
-      setStreamingThinking('')
-      setError(null)
-      assistantContentRef.current = ''
-    } catch (err: any) {
-      setError(err.message || 'Failed to clear conversation')
-    }
-  }
-
   return (
     <div className="flex flex-col h-full" style={{ height: 'calc(100vh - 0px)' }}>
-      <ChatHeader sessionId={sessionId} onSessionChange={onSessionChange} onClear={handleClear} />
+      <ChatHeader sessionId={sessionId} onSessionChange={onSessionChange} />
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">

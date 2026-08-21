@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
-import { MessageSquare, Trash2, Eraser, ExternalLink } from 'lucide-react'
+import { MessageSquare, Trash2, ExternalLink } from 'lucide-react'
 import type { Session } from '../../api'
+import GlassButton from '../common/GlassButton'
 
 interface Props {
   sessions: Session[]
@@ -89,36 +90,11 @@ export default function SessionsTable({ sessions, loading, onOpen, onRemove, onC
           <div className="text-center text-xs" style={{ color: 'var(--color-text-muted)' }}>{relativeTime(s.updatedAt)}</div>
 
           <div className="flex items-center justify-end gap-2">
-            <button
-              onClick={() => onOpen(s.id)}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
-              style={{ color: 'var(--color-accent-primary)', background: 'var(--color-accent-primary-dim)' }}
-              title="Open chat"
-            >
-              <ExternalLink size={13} />
-              Open
-            </button>
-
+            <GlassButton icon={<ExternalLink size={14} />} label="Open" title="Open chat" onClick={() => onOpen(s.id)} />
             {s.default ? (
-              <button
-                onClick={() => onClear(s)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{ color: 'rgba(251,191,36,0.9)', background: 'rgba(245,158,11,0.12)' }}
-                title="Clear messages"
-              >
-                <Eraser size={13} />
-                Clear
-              </button>
+              <GlassButton icon={<Trash2 size={14} />} variant="danger" title="Clear messages" iconOnly onClick={() => onClear(s)} />
             ) : (
-              <button
-                onClick={() => onRemove(s)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{ color: '#F87171', background: 'rgba(239,68,68,0.12)' }}
-                title="Remove session"
-              >
-                <Trash2 size={13} />
-                Remove
-              </button>
+              <GlassButton icon={<Trash2 size={14} />} variant="danger" title="Remove session" iconOnly onClick={() => onRemove(s)} />
             )}
           </div>
         </motion.div>

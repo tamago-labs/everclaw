@@ -17,7 +17,6 @@ const navItems: { title: string; items: NavItem[] }[] = [
     items: [
       { icon: LayoutDashboard, label: 'Overview', path: '/overview' },
       { icon: List, label: 'Sessions', path: '/sessions' },
-      { icon: Settings, label: 'Settings', path: '/settings' },
     ],
   },
 ]
@@ -81,6 +80,25 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
+
+      {/* Settings at bottom */}
+      <div className="px-4 pb-5">
+        <button
+          onClick={() => navigate('/settings')}
+          className="flex items-center gap-3.5 w-full px-3.5 py-2.5 rounded-xl text-[15px] font-semibold transition-all"
+          style={{
+            background: location.pathname === '/settings' ? 'var(--color-accent-primary-dim)' : 'transparent',
+            color: location.pathname === '/settings' ? 'var(--color-accent-primary)' : 'var(--color-text-secondary)',
+          }}
+        >
+          <Settings
+            size={20}
+            strokeWidth={location.pathname === '/settings' ? 2.2 : 1.8}
+            style={{ color: location.pathname === '/settings' ? 'var(--color-accent-primary)' : 'var(--color-text-muted)' }}
+          />
+          <span>Settings</span>
+        </button>
+      </div>
     </div>
   )
 }
