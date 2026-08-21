@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Crown, MessageSquare, LayoutDashboard, List, Settings } from 'lucide-react'
+import { Crown, MessageSquare, LayoutDashboard, List, Settings, Bot } from 'lucide-react'
 
 interface NavItem {
   icon: any
@@ -18,6 +18,10 @@ const navItems: { title: string; items: NavItem[] }[] = [
       { icon: LayoutDashboard, label: 'Overview', path: '/overview' },
       { icon: List, label: 'Sessions', path: '/sessions' },
     ],
+  },
+  {
+    title: 'Agent',
+    items: [{ icon: Bot, label: 'Agents', path: '/agents' }],
   },
 ]
 

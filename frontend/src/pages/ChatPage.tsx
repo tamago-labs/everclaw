@@ -7,9 +7,18 @@ export default function ChatPage() {
   const { status } = useAI()
   const [searchParams, setSearchParams] = useSearchParams()
   const sessionId = searchParams.get('session')
+  const agentId = searchParams.get('agent')
 
   const handleSessionChange = (id: string) => {
-    setSearchParams({ session: id })
+    const next: Record<string, string> = { session: id }
+    if (agentId) next.agent = agentId
+    setSearchParams(next)
+  }
+
+  const handleAgentClear = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('agent')
+    setSearchParams(next)
   }
 
   if (!status?.loaded) {
@@ -26,5 +35,5 @@ export default function ChatPage() {
     )
   }
 
-  return <ChatContainer sessionId={sessionId} onSessionChange={handleSessionChange} />
+  return <ChatContainer sessionId={sessionId} agentId={agentId} onSessionChange={handleSessionChange} onAgentClear={handleAgentClear} />
 }

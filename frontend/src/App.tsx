@@ -5,6 +5,7 @@ import ChatPage from './pages/ChatPage'
 import SessionsPage from './pages/SessionsPage'
 import SettingsPage from './pages/SettingsPage'
 import OverviewPage from './pages/OverviewPage'
+import AgentsPage from './pages/AgentsPage'
 import ModelSelectPage from './pages/ModelSelectPage'
 import { useAI } from './context/AIContext'
 
@@ -29,6 +30,7 @@ function AppRoutes() {
         <Route path="/" element={<ChatPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/sessions" element={<SessionsPage />} />
+        <Route path="/agents" element={<AgentsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/overview" element={<OverviewPage />} />
       </Route>

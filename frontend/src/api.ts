@@ -204,6 +204,57 @@ export async function clearLogs(): Promise<{ ok: boolean }> {
   return res.json()
 }
 
+// ============== Agents ==============
+
+export interface Agent {
+  id: string
+  name: string
+  description?: string
+  systemPrompt: string
+  createdAt: string
+  updatedAt: string
+}
+
+export async function fetchAgents(): Promise<{ agents: Agent[] }> {
+  const res = await fetch(`${API_BASE}/agents`)
+  return res.json()
+}
+
+export async function createAgent(data: { name: string; description?: string; systemPrompt: string }): Promise<Agent> {
+  const res = await fetch(`${API_BASE}/agents`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to create agent')
+  }
+  return res.json()
+}
+
+export async function updateAgent(id: string, patch: { name?: string; description?: string; systemPrompt?: string }): Promise<Agent> {
+  const res = await fetch(`${API_BASE}/agents/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to update agent')
+  }
+  return res.json()
+}
+
+export async function deleteAgent(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_BASE}/agents/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Failed to delete agent')
+  }
+  return res.json()
+}
+
 // ============== Kane CLI ==============
 
 export async function fetchKaneStatus(): Promise<{ available: boolean; version: string | null; authenticated: boolean; modelLoaded: boolean }> {

@@ -24,6 +24,7 @@ import {
 
 import { ModelStore } from './modelStore.js'
 import { SessionStore, type Message } from './sessionStore.js'
+import { AgentStore } from './agentStore.js'
 import { getKaneStatus, startKaneStatusPolling } from './kaneCli.js'
 
 
@@ -72,6 +73,7 @@ function ensureQvacConfig() {
 // --- Stores ---
 const modelStore = new ModelStore(userDataPath)
 const sessionStore = new SessionStore(userDataPath)
+const agentStore = new AgentStore(userDataPath)
 
 // --- Registry Sources ---
 const REGISTRY_SOURCES: Record<string, any> = {
@@ -271,6 +273,40 @@ app.put('/api/sessions/:id', (req, res) => {
   res.json({ ok: true })
 })
 
+// ============== Agents ==============
+
+app.get('/api/agents', (_req, res) => {
+  res.json({ agents: agentStore.getAll() })
+})
+
+app.post('/api/agents', (req, res) => {
+  const { name, description, systemPrompt } = req.body
+  if (!name?.trim() || !systemPrompt?.trim()) {
+    res.status(400).json({ error: 'Name and systemPrompt are required' })
+    return
+  }
+  res.json(agentStore.add({ name, description, systemPrompt }))
+})
+
+app.get('/api/agents/:id', (req, res) => {
+  const agent = agentStore.getById(req.params.id)
+  if (!agent) return res.status(404).json({ error: 'Agent not found' })
+  res.json(agent)
+})
+
+app.put('/api/agents/:id', (req, res) => {
+  const { name, description, systemPrompt } = req.body
+  const agent = agentStore.update(req.params.id, { name, description, systemPrompt })
+  if (!agent) return res.status(404).json({ error: 'Agent not found' })
+  res.json(agent)
+})
+
+app.delete('/api/agents/:id', (req, res) => {
+  const ok = agentStore.remove(req.params.id)
+  if (!ok) return res.status(404).json({ error: 'Agent not found' })
+  res.json({ ok: true })
+})
+
 // ============== Kane status ==============
 
 // Kane status
@@ -300,16 +336,18 @@ wss.on('connection', (ws, req) => {
       const msg = JSON.parse(raw.toString())
 
       if (msg.type === 'chat') {
-        const { message, sessionId, history } = msg
+        const { message, sessionId, history, agentId } = msg
 
         if (!currentModelId) {
           ws.send(JSON.stringify({ type: 'error', message: 'No model loaded' }))
           return
         }
 
-        // Build history array for QVAC
+        // Build history array for QVAC — agent systemPrompt overrides default when provided
+        const agent = agentId ? agentStore.getById(agentId) : null
+        const systemContent = agent?.systemPrompt || 'You are Everclaw, a helpful AI assistant. Be concise and helpful.'
         const qvacHistory = [
-          { role: 'system' as const, content: 'You are Everclaw, a helpful AI assistant. Be concise and helpful.' },
+          { role: 'system' as const, content: systemContent },
           ...(history || []).map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
           { role: 'user' as const, content: message },
         ]

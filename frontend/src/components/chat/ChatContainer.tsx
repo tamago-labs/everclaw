@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
 import { motion } from 'framer-motion'
-import { Send, Bot, User, Loader2 } from 'lucide-react'
-import { getSession } from '../../api'
+import { Send, Bot, User, Loader2, X } from 'lucide-react'
+import { getSession, fetchAgents, type Agent } from '../../api'
 import ChatHeader from './ChatHeader'
 
 interface Message {
@@ -13,16 +13,19 @@ interface Message {
 
 interface Props {
   sessionId: string | null
+  agentId?: string | null
   onSessionChange: (id: string) => void
+  onAgentClear?: () => void
 }
 
-export default function ChatContainer({ sessionId, onSessionChange }: Props) {
+export default function ChatContainer({ sessionId, agentId, onSessionChange, onAgentClear }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [streamingThinking, setStreamingThinking] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [wsConnected, setWsConnected] = useState(false)
+  const [agent, setAgent] = useState<Agent | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const assistantContentRef = useRef('')
@@ -31,6 +34,11 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
   const mountedRef = useRef(true)
 
   useEffect(() => { sessionIdRef.current = sessionId }, [sessionId])
+
+  useEffect(() => {
+    if (!agentId) { setAgent(null); return }
+    fetchAgents().then((r) => setAgent(r.agents.find((a) => a.id === agentId) || null)).catch(() => setAgent(null))
+  }, [agentId])
 
   // Load messages when session changes
   useEffect(() => {
@@ -143,6 +151,7 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
       type: 'chat',
       message: userMsg.content,
       sessionId: sessionIdRef.current,
+      agentId: agentId || undefined,
       history,
     }))
   }
@@ -150,6 +159,22 @@ export default function ChatContainer({ sessionId, onSessionChange }: Props) {
   return (
     <div className="flex flex-col h-full" style={{ height: 'calc(100vh - 0px)' }}>
       <ChatHeader sessionId={sessionId} onSessionChange={onSessionChange} />
+      {agent && (
+        <div className="px-6 py-2 flex items-center justify-between gap-2 text-xs" style={{ background: 'rgba(0,230,138,0.08)', borderBottom: '1px solid rgba(0,230,138,0.2)', color: 'var(--color-accent-primary)' }}>
+          <span className="flex items-center gap-2 min-w-0">
+            <Bot size={12} /> Agent: <span className="font-semibold truncate">{agent.name}</span>
+          </span>
+          <button
+            onClick={onAgentClear}
+            className="p-1 rounded-md hover:bg-white/10 transition-colors shrink-0"
+            style={{ color: 'var(--color-text-muted)' }}
+            title="Remove agent"
+            aria-label="Remove agent"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">

@@ -28,7 +28,7 @@ export default function ModelSelectPage() {
     setLoading(true)
     setError(null)
     setProgress({ phase: 'starting', percent: 0 })
-    setDisplayPercent(8)
+    setDisplayPercent(2)
     loadModelSSE(
       selectedId, 8192,
       (data) => {
@@ -42,19 +42,19 @@ export default function ModelSelectPage() {
     )
   }
 
-  // Simulated 0→30→50 when no real percent reported
+  // Simulated crawl 2→10% while no real percent is reported (per selected option: cap at 10%)
   useEffect(() => {
     if (!loading || !progress) return
     const real = typeof progress.percent === 'number' ? progress.percent : 0
     if (real > 0) return // real progress drives displayPercent via onProgress
     const id = setInterval(() => {
       setDisplayPercent((prev) => {
-        if (prev < 30) return Math.min(30, prev + 4)
-        if (prev < 50) return Math.min(50, prev + 0.9)
-        if (prev < 55) return Math.min(55, prev + 0.15)
+        if (prev < 5) return Math.min(5, prev + 0.7)
+        if (prev < 8) return Math.min(8, prev + 0.35)
+        if (prev < 10) return Math.min(10, prev + 0.12)
         return prev
       })
-    }, 320)
+    }, 450)
     return () => clearInterval(id)
   }, [loading, progress])
 
@@ -256,7 +256,7 @@ export default function ModelSelectPage() {
                   {progress.percent && progress.percent > 0 ? `${Math.round(progress.percent)}%` : `${Math.round(displayPercent)}%`}
                 </span>
                 <span className="text-[11px]" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>
-                  {displayPercent < 50 && !(progress.percent && progress.percent > 0) ? 'Working — hang tight' : progress.message ? '' : ''}
+                  {displayPercent < 10 && !(progress.percent && progress.percent > 0) ? 'Preparing — hang tight' : progress.message ? '' : ''}
                 </span>
               </div>
               {progress.message && (
