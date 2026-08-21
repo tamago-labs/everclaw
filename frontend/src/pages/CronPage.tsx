@@ -84,7 +84,7 @@ export default function CronPage() {
               {jobs.length > 0 && <span className="text-sm font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--color-accent-primary-dim)', color: 'var(--color-accent-primary)' }}>{jobs.length}</span>}
             </motion.h1>
             <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-              Kane testmd jobs — one at a time. Each run creates a <code style={{ color: 'var(--color-text-primary)' }}>Cron: {'<name>'}</code> session.
+              Automate tests on schedule — one at a time. Results appear in Sessions.
             </p>
           </div>
           <GlassButton icon={<Plus size={16} />} label="New Job" onClick={() => { setEditing(null); setDrawerOpen(true) }} />
@@ -387,6 +387,7 @@ function CronDrawer({ isOpen, onClose, onSaved, editing }: { isOpen: boolean; on
               </div>
             )}
             <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>AI converts prompt via <code>kane-cli generate</code> → structured testmd like <code>scripts/*.md</code> — preview then edit.</p>
+            <p className="text-xs mt-1" style={{ color: '#F59E0B' }}>Jobs run on their own and can&apos;t ask for input — if they do, they&apos;ll freeze.</p>
           </div>
           <div>
             <label className="block text-xs font-medium mb-2" style={{ color: 'var(--color-text-muted)' }}>Schedule</label>
