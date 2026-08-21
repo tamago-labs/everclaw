@@ -7,6 +7,7 @@ import SettingsPage from './pages/SettingsPage'
 import OverviewPage from './pages/OverviewPage'
 import AgentsPage from './pages/AgentsPage'
 import VariablesPage from './pages/VariablesPage'
+import CronPage from './pages/CronPage'
 import ModelSelectPage from './pages/ModelSelectPage'
 import { useAI } from './context/AIContext'
 
@@ -35,6 +36,7 @@ function AppRoutes() {
         <Route path="/sessions" element={<SessionsPage />} />
         <Route path="/agents" element={<AgentsPage />} />
         <Route path="/variables" element={<VariablesPage />} />
+        <Route path="/cron" element={<CronPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/overview" element={<OverviewPage />} />
       </Route>

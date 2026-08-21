@@ -26,6 +26,7 @@ import { ModelStore } from './modelStore.js'
 import { SessionStore, type Message } from './sessionStore.js'
 import { AgentStore } from './agentStore.js'
 import { VariableStore } from './variableStore.js'
+import { CronStore } from './cronStore.js'
 import { getKaneStatus, startKaneStatusPolling } from './kaneCli.js'
 
 
@@ -88,6 +89,7 @@ const modelStore = new ModelStore(userDataPath)
 const sessionStore = new SessionStore(userDataPath)
 const agentStore = new AgentStore(userDataPath)
 const variableStore = new VariableStore(userDataPath)
+const cronStore = new CronStore(userDataPath)
 
 // --- Registry Sources ---
 const REGISTRY_SOURCES: Record<string, any> = {
@@ -372,6 +374,485 @@ app.delete('/api/variables/:id', (req, res) => {
   if (!ok) return res.status(404).json({ error: 'Variable not found' })
   console.log(`variable delete: ${req.params.id}`)
   res.json({ ok: true })
+})
+
+// ============== Cron Jobs (kane testmd, serial queue, Cron: session) ==============
+
+let cronRunning: string | null = null
+const cronQueue: string[] = []
+
+async function runCronJob(job: any): Promise<void> {
+  const kaneStatus = getKaneStatus()
+  if (!kaneStatus.available || !kaneStatus.authenticated) {
+    console.warn(`cron skip ${job.id} — kane not ready`)
+    cronStore.update(job.id, { lastRun: { at: new Date().toISOString(), status: 'failed' } })
+    return
+  }
+  cronRunning = job.id
+  cronStore.update(job.id, { lastRun: { at: new Date().toISOString(), status: 'running' } })
+  console.log(`cron run start: ${job.id} "${job.name}"`)
+  try {
+    // Auto-generate markdown if missing (e.g. CLI-created job with no markdown)
+    let md = job.markdown
+    if (!md || !md.trim()) {
+      const prompt = (job.objective || '').trim()
+      if (prompt) {
+        try {
+          console.log(`cron ${job.id}: no markdown, generating from objective`)
+          md = await generateKaneMarkdown(prompt, job.id)
+          cronStore.update(job.id, { markdown: md })
+        } catch (e: any) {
+          console.warn(`cron ${job.id}: auto-generate failed: ${e.message}`)
+        }
+      }
+    }
+    if (!md || !md.trim()) {
+      cronStore.update(job.id, { lastRun: { at: new Date().toISOString(), status: 'failed' } })
+      console.warn(`cron run skip ${job.id}: no markdown and could not generate`)
+      return
+    }
+    // Resolve {{uuid}} placeholders (not part of Variables) so testmd won't fail on unknown var
+    const resolvedMd = md.replace(/\{\{\s*uuid\s*\}\}/gi, () => crypto.randomUUID())
+    // Write markdown to temp file for testmd run
+    const tmpMd = path.join(userDataPath, `cron-${job.id}-${Date.now()}_test.md`)
+    fs.writeFileSync(tmpMd, resolvedMd)
+    // Prefer the markdown's own frontmatter `url:` (so pasted known-good markdowns run as-is);
+    // fall back to job.url, then localhost:3001.
+    let runUrl = job.url && job.url.trim() ? job.url.trim() : 'http://localhost:3001'
+    const fm = resolvedMd.match(/^---\s*\n([\s\S]*?)\n---/)
+    if (fm) {
+      const u = fm[1].match(/^\s*url\s*:\s*(\S+)\s*$/m)
+      if (u && u[1]) runUrl = u[1] // pasted markdown's own url takes precedence
+    }
+    const kaneVars = variableStore.toKaneVariables()
+    let varsPath: string | null = null
+    const args = ['testmd', 'run', tmpMd, '--agent', '--url', runUrl, '--timeout', '600', '--headless']
+    console.log(`cron ${job.id} runUrl=${runUrl} vars=${Object.keys(kaneVars).length} headless md=${md.length}b`)
+    if (Object.keys(kaneVars).length > 0) {
+      varsPath = path.join(userDataPath, `cron-vars-${job.id}-${Date.now()}.json`)
+      fs.writeFileSync(varsPath, JSON.stringify(kaneVars))
+      args.push('--variables-file', varsPath)
+    }
+    const { spawn } = await import('child_process')
+    const child = spawn('kane-cli', args, { env: { ...process.env, KANE_CLI_USER_AGENT: process.env.KANE_CLI_USER_AGENT || 'everclaw' }, shell: true, stdio: ['pipe', 'pipe', 'pipe'] })
+    let stdout = ''
+    let stderr = ''
+    let runEnd: any = null
+    let shareUrl: string | null = null
+    let overallStatus: string | null = null
+    child.stdout.on('data', (c: Buffer) => {
+      const t = c.toString()
+      stdout += t
+      for (const line of t.split('\n')) {
+        const s = line.trim()
+        if (!s) continue
+        try {
+          const o = JSON.parse(s)
+          if (o.type === 'run_end') runEnd = o
+          // testmd run reports its shareable Test Manager link via test_md_done / test_md_summary
+          else if ((o.type === 'test_md_done' || o.type === 'test_md_summary') && o.share_url) shareUrl = o.share_url
+          else if (o.type === 'test_md_done' && o.overall_status) overallStatus = o.overall_status
+          else if (o.step !== undefined) console.log(`cron step ${o.step}: ${o.status} ${o.remark || ''}`.slice(0, 200))
+          else if (o.type) console.log(`cron ${o.type}`)
+        } catch {}
+      }
+    })
+    child.stderr.on('data', (c: Buffer) => { stderr += c.toString() })
+    await new Promise<void>((resolve) => {
+      child.on('close', (code) => {
+        if (code !== 0 && !runEnd) console.warn(`cron kane exit ${code} stderr=${stderr.slice(0, 800)}`)
+        resolve()
+      })
+      child.on('error', () => resolve())
+    })
+    if (varsPath) try { fs.unlinkSync(varsPath) } catch {}
+    try { fs.unlinkSync(tmpMd) } catch {}
+    // Fallback parse runEnd
+    if (!runEnd) {
+      for (const l of stdout.trim().split('\n').reverse()) {
+        try { const o = JSON.parse(l); if (o.type === 'run_end') { runEnd = o; break } } catch {}
+      }
+    }
+    // testmd run exposes its shareable Test Manager link via test_md_done/test_md_summary (not run_end)
+    if (runEnd && shareUrl) runEnd.test_url = shareUrl
+    // Pipeline status: 'completed' = kane finished (run_end received), even if the test
+    // scenario report itself failed. 'failed' is reserved for pipeline errors (no runEnd).
+    const runCompleted = !!runEnd
+    const status: 'completed' | 'failed' = runCompleted ? 'completed' : 'failed'
+    const result: 'passed' | 'failed' | undefined = (overallStatus === 'passed' || runEnd?.status === 'passed') ? 'passed'
+      : (overallStatus === 'failed' || runEnd?.status === 'failed') ? 'failed'
+      : undefined
+    const duration = runEnd?.duration
+    // Build a debug detail string from run_end (steps / message / error)
+    let detail = ''
+    if (runEnd) {
+      const steps: any[] | null = Array.isArray(runEnd.steps) ? runEnd.steps
+        : Array.isArray(runEnd.result?.steps) ? runEnd.result.steps
+        : Array.isArray(runEnd.scenario?.steps) ? runEnd.scenario.steps
+        : null
+      if (steps && steps.length) detail = steps.map((s: any, i: number) => `#${i + 1} ${s.status || '?'} ${s.remark || s.name || ''}`).join(' | ')
+      else if (runEnd.message) detail = String(runEnd.message)
+      else if (runEnd.error) detail = String(runEnd.error)
+      else detail = JSON.stringify(runEnd).slice(0, 500)
+    }
+    if (!runCompleted) console.warn(`cron ${job.id} FAILED (no run_end): ${detail.slice(0, 1200) || stderr.slice(0, 400)}`)
+    else console.log(`cron ${job.id} COMPLETED (${duration ?? '?'}s) test=${result}: ${detail.slice(0, 400)}`)
+    cronStore.update(job.id, { lastRun: { at: new Date().toISOString(), status, result, duration, detail: detail.slice(0, 2000) } })
+    // Bump nextRun if not once
+    if (job.schedule.type !== 'once') cronStore.bumpNextRun(job.id)
+    // Summarize + create Cron: session — detached so a failed scenario never blocks the queue
+    if (runEnd) void summarizeCronRun(job, runEnd, status)
+    console.log(`cron run done: ${job.id} ${status} ${duration ?? ''}s`)
+  } finally {
+    cronRunning = null
+    // process next in queue serially
+    if (cronQueue.length > 0) {
+      const nextId = cronQueue.shift()!
+      const nextJob = cronStore.getById(nextId)
+      if (nextJob) setImmediate(() => runCronJob(nextJob))
+      else if (cronQueue.length > 0) setImmediate(() => { const nid = cronQueue.shift()!; const nj = cronStore.getById(nid); if (nj) runCronJob(nj) })
+    }
+  }
+}
+
+// Detached: create a Cron: session from run_end and enrich it with an AI summary.
+// Runs regardless of pass/fail so a failed scenario never blocks the queue.
+async function summarizeCronRun(job: any, runEnd: any, status: string): Promise<void> {
+  try {
+    const session = sessionStore.create(`Cron: ${job.name}`)
+    const now = new Date().toISOString()
+    // User message mirrors chat kane mode: the objective/prompt (or a clear fallback), not "(generated)"
+    const userContent = job.objective && job.objective.trim() ? job.objective.trim() : `Cron run: ${job.name}`
+    const userMsg = { id: Date.now().toString(), role: 'user' as const, content: userContent, timestamp: now }
+    const aiMsgId = (Date.now() + 1).toString()
+    // Primary content = Kane's own summary (the "link to kane-cli"), exactly like chat kane mode.
+    // kaneMeta carries the full run_end so the Kane result card renders.
+    const kaneSummary = runEnd.summary || runEnd.one_liner || 'Kane run completed'
+    sessionStore.saveMessages(session.id, [
+      userMsg,
+      { id: aiMsgId, role: 'assistant' as const, content: kaneSummary, kaneMeta: runEnd, timestamp: now },
+    ])
+    // Optional local-AI refine (mirrors chat kane mode's second step); base stays Kane's summary
+    if (currentModelId) {
+      try {
+        const sys = 'You are a translator. Input is Kane run_end JSON. Output a concise 2-4 line human summary. Include what was done, result (passed/failed), and any extracted values from final_state. No persona, limit 300 tokens.'
+        const run = completion({ modelId: currentModelId, history: [{ role: 'system' as const, content: sys }, { role: 'user' as const, content: JSON.stringify(runEnd) }], stream: false, kvCache: false, captureThinking: true } as any)
+        const out: any = await (run as any).text
+        const cleaned = (typeof out === 'string' ? out : String(out)).replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+        if (cleaned) {
+          const msgs = sessionStore.getMessages(session.id)
+          const ai = msgs.find((m: any) => m.id === aiMsgId)
+          if (ai) { ai.content = cleaned; sessionStore.saveMessages(session.id, msgs) }
+        }
+      } catch (e: any) {
+        console.warn(`cron summarize refine skip: ${e.message}`)
+      }
+    }
+    console.log(`cron session: ${session.id} Cron: ${job.name} ${status}`)
+  } catch (e: any) {
+    console.warn(`cron summarize skip: ${e.message}`)
+  }
+}
+
+function enqueueCron(jobId: string) {
+  const job = cronStore.getById(jobId)
+  if (!job) return
+  if (cronRunning === jobId) {
+    // already running this exact job — queue one more run after it finishes
+    if (!cronQueue.includes(jobId)) cronQueue.push(jobId)
+    return
+  }
+  if (cronRunning) {
+    // something else running — queue this one
+    if (!cronQueue.includes(jobId)) cronQueue.push(jobId)
+    return
+  }
+  // nothing running — start now (runCronJob sets cronRunning synchronously inside)
+  runCronJob(job)
+}
+
+app.get('/api/cron', (_req, res) => {
+  res.json({ jobs: cronStore.getAll(), running: cronRunning, queue: [...cronQueue] })
+})
+
+app.post('/api/cron', (req, res) => {
+  const { name, objective, url, markdown, schedule, enabled } = req.body
+  try {
+    const job = cronStore.add({ name, objective, url, markdown, schedule, enabled })
+    console.log(`cron add: ${job.id} "${job.name}" ${job.schedule.type}`)
+    res.json(job)
+  } catch (e: any) {
+    res.status(400).json({ error: e.message })
+  }
+})
+
+// Standalone generate (no job id) — for New Job drawer before create
+async function generateKaneMarkdown(srcPrompt: string, runId: string): Promise<string> {
+  const { spawn } = await import('child_process')
+  // Step 1: generate snapshot — stream progress via WS (buffer incomplete lines across chunks)
+  const child = spawn('kane-cli', ['generate', srcPrompt, '--agent'], { env: { ...process.env, KANE_CLI_USER_AGENT: process.env.KANE_CLI_USER_AGENT || 'everclaw' }, shell: true, stdio: ['pipe', 'pipe', 'pipe'] })
+  let stdout = ''
+  let stderr = ''
+  let lineBuf = ''
+  child.stdout.on('data', (c: Buffer) => {
+    const chunk = c.toString()
+    stdout += chunk
+    lineBuf += chunk
+    let nl
+    while ((nl = lineBuf.indexOf('\n')) !== -1) {
+      const line = lineBuf.slice(0, nl).trim()
+      lineBuf = lineBuf.slice(nl + 1)
+      if (!line) continue
+      try {
+        const o = JSON.parse(line)
+        if (o.type === 'generate_progress' && wssRef) wssRef.clients.forEach((ws: any) => { try { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'cron_generate_progress', runId, pct: o.pct })) } catch {} })
+        if (o.type === 'generate_thinking' && wssRef) wssRef.clients.forEach((ws: any) => { try { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'cron_generate_thinking', runId })) } catch {} })
+        if (o.type === 'generate_chat' && wssRef) wssRef.clients.forEach((ws: any) => { try { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'cron_generate_chat', runId, text: o.text })) } catch {} })
+      } catch {}
+    }
+  })
+  child.stderr.on('data', (c: Buffer) => { stderr += c.toString() })
+  const code: number | null = await new Promise((resolve) => { child.on('close', resolve); child.on('error', () => resolve(1)) })
+  if (code !== 0) throw new Error(stderr.slice(0, 1000) || `generate exited ${code}`)
+  let reqId: string | null = null
+  let markdown = ''
+  let primarySid: string | null = null
+  let primaryScode: string | null = null
+  let primaryTitle: string | null = null
+  let primaryCaseTitle: string | null = null
+  for (const line of stdout.trim().split('\n')) {
+    try {
+      const o = JSON.parse(line)
+      if (o.request_id) reqId = o.request_id
+      if (o.requestId) reqId = o.requestId
+      if (o.id) reqId = o.id
+      // Capture the primary scenario/case identity so we can pick the right *_test.md later
+      if (o.type === 'generate_snapshot' && Array.isArray(o.scenarios) && o.scenarios.length) {
+        const s0 = o.scenarios[0]
+        if (s0) {
+          if (s0.sid) primarySid = String(s0.sid)
+          if (s0.scode) primaryScode = String(s0.scode)
+          if (s0.title) primaryTitle = String(s0.title)
+          const c0 = s0.test_cases && s0.test_cases[0]
+          if (c0 && c0.title) primaryCaseTitle = String(c0.title)
+        }
+      }
+      if (o.type === 'generate_snapshot' && o.markdown) markdown = o.markdown
+      if (o.snapshot?.markdown) markdown = o.snapshot.markdown
+      if (o.data?.markdown) markdown = o.data.markdown
+      if (o.markdown && typeof o.markdown === 'string' && o.markdown.includes('## ')) markdown = o.markdown
+    } catch {}
+  }
+  // Step 2: if snapshot didn't contain markdown, try --save with reqId
+  if (!markdown && reqId) {
+    const child2 = spawn('kane-cli', ['generate', '--save', '--req', reqId, '--agent'], { env: { ...process.env, KANE_CLI_USER_AGENT: process.env.KANE_CLI_USER_AGENT || 'everclaw' }, shell: true, stdio: ['pipe', 'pipe', 'pipe'] })
+    let stdout2 = ''
+    let stderr2 = ''
+    let suiteDir: string | null = null
+    let lineBuf2 = ''
+    child2.stdout.on('data', (c: Buffer) => {
+      const chunk = c.toString()
+      stdout2 += chunk
+      lineBuf2 += chunk
+      let nl
+      while ((nl = lineBuf2.indexOf('\n')) !== -1) {
+        const line = lineBuf2.slice(0, nl).trim()
+        lineBuf2 = lineBuf2.slice(nl + 1)
+        if (!line) continue
+        try {
+          const o = JSON.parse(line)
+          if (o.suite_dir) suiteDir = o.suite_dir
+          if (o.suiteDir) suiteDir = o.suiteDir
+          if (o.type === 'generate_save_result' && o.suite_dir) suiteDir = o.suite_dir
+          if (o.type === 'generate_progress' && wssRef) wssRef.clients.forEach((ws: any) => { try { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'cron_generate_progress', runId, pct: o.pct })) } catch {} })
+        } catch {}
+      }
+    })
+    child2.stderr.on('data', (c: Buffer) => { stderr2 += c.toString() })
+    const code2: number | null = await new Promise((resolve) => { child2.on('close', resolve); child2.on('error', () => resolve(1)) })
+    // Kane may return "no functional test cases generated" (e.g. duplicate/vague prompt) — surface it
+    if (stdout2.includes('no functional test cases')) {
+      throw new Error('Kane produced no functional cases — try a more explicit objective, e.g. "navigate to https://www.thailandstarterkit.com/moving/living-in-phra-khanong/, assert the page loads, store the first paragraph text as \'first_paragraph\'"')
+    }
+    // Locate the *_test.md files written by THIS generate. kane's reported suite_dir can be a
+    // path that was never created (e.g. .../tcg-<reqId>), so fall back to locating by request id
+    // in the folder name, then to the most recently written files.
+    const testRoot = path.join(process.cwd(), '.testmuai', 'tests')
+    let candidateFiles: string[] = []
+    const walkAdd = (dir: string, out: string[]) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name)
+        if (e.isFile() && p.endsWith('_test.md')) out.push(p)
+        else if (e.isDirectory()) walkAdd(p, out)
+      }
+    }
+    // 1) reported suite_dir — only if it actually exists
+    if (suiteDir && fs.existsSync(suiteDir)) {
+      try { walkAdd(suiteDir, candidateFiles) } catch {}
+    }
+    // 2) folder whose name contains the request id (kane names suites <slug>-<reqId>)
+    if (candidateFiles.length === 0 && reqId && fs.existsSync(testRoot)) {
+      try {
+        for (const d of fs.readdirSync(testRoot)) {
+          const fp = path.join(testRoot, d)
+          if (fs.statSync(fp).isDirectory() && d.includes(String(reqId))) { walkAdd(fp, candidateFiles); break }
+        }
+      } catch {}
+    }
+    // 3) newest _test.md files under .testmuai/tests modified within the last 3 minutes
+    if (candidateFiles.length === 0 && fs.existsSync(testRoot)) {
+      try {
+        const now = Date.now()
+        const all: { p: string; m: number }[] = []
+        walkAddM(testRoot, all)
+        function walkAddM(dir: string, out: { p: string; m: number }[]) {
+          for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+            const p = path.join(dir, e.name)
+            if (e.isFile() && p.endsWith('_test.md')) { try { out.push({ p, m: fs.statSync(p).mtimeMs }) } catch {} }
+            else if (e.isDirectory()) walkAddM(p, out)
+          }
+        }
+        candidateFiles = all.filter((x) => now - x.m < 180000).sort((a, b) => b.m - a.m).map((x) => x.p)
+      } catch {}
+    }
+    // Pick the primary scenario's file: match sid / scode / title tokens against path+content,
+    // scoped to this generate's candidates only (never across other prompts' suites).
+    if (candidateFiles.length > 0) {
+      const tokens: string[] = []
+      if (primarySid) tokens.push(primarySid.toLowerCase())
+      if (primaryScode) tokens.push(primaryScode.toLowerCase().replace(/[^a-z0-9]+/g, '-'))
+      if (primaryTitle) {
+        for (const w of primaryTitle.toLowerCase().split(/[^a-z0-9]+/)) if (w.length > 3) tokens.push(w)
+      }
+      if (primaryCaseTitle) {
+        for (const w of primaryCaseTitle.toLowerCase().split(/[^a-z0-9]+/)) if (w.length > 3) tokens.push(w)
+      }
+      let picked: string | null = null
+      if (tokens.length > 1 || (tokens.length === 1 && tokens[0].length > 4)) {
+        let bestScore = -1
+        for (const f of candidateFiles) {
+          try {
+            const hay = (f + ' ' + fs.readFileSync(f, 'utf-8')).toLowerCase()
+            let score = 0
+            for (const t of tokens) if (t && hay.includes(t)) score++
+            if (score > bestScore) { bestScore = score; picked = f }
+          } catch {}
+        }
+        if (bestScore <= 0) picked = null
+      }
+      if (!picked) {
+        // fallback: newest mtime first (candidates from paths 1-2 keep dir order; sort by mtime desc)
+        const withM = candidateFiles.map((p) => { try { return { p, m: fs.statSync(p).mtimeMs } } catch { return { p, m: 0 } } })
+        withM.sort((a, b) => b.m - a.m)
+        picked = withM[0]?.p || candidateFiles[0]
+      }
+      if (picked) try { markdown = fs.readFileSync(picked, 'utf-8') } catch {}
+    }
+    if (!markdown) {
+      for (const line of stdout2.trim().split('\n')) {
+        try {
+          const o = JSON.parse(line)
+          if (o.markdown) markdown = o.markdown
+          if (o.path && fs.existsSync(o.path)) try { markdown = fs.readFileSync(o.path, 'utf-8') } catch {}
+        } catch {}
+      }
+    }
+    if (!markdown && stdout2.trim().includes('## ')) markdown = stdout2.trim()
+    if (code2 !== 0 && !markdown) throw new Error(stderr2.slice(0, 1000) || `generate --save exited ${code2}`)
+  }
+  if (!markdown) {
+    const maybe = stdout.trim()
+    if (maybe.includes('## ') || maybe.includes('mode:')) markdown = maybe
+  }
+  if (!markdown) throw new Error('No markdown from generate')
+  return markdown
+}
+
+app.post('/api/cron/generate', async (req, res) => {
+  const { prompt } = req.body as { prompt?: string }
+  const srcPrompt = (prompt || '').trim()
+  if (!srcPrompt) return res.status(400).json({ error: 'prompt required' })
+  try {
+    const previewRunId = `cron_preview_${Date.now()}`
+    const markdown = await generateKaneMarkdown(srcPrompt, previewRunId)
+    if (wssRef) wssRef.clients.forEach((ws: any) => { try { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'cron_generate_done', runId: previewRunId, markdown: markdown.slice(0, 200) })) } catch {} })
+    const scriptsDir = path.join(__dirname, '..', 'scripts')
+    try { fs.mkdirSync(scriptsDir, { recursive: true }) } catch {}
+    const tmpPath = path.join(scriptsDir, `cron-preview-${Date.now()}_test.md`)
+    try { fs.writeFileSync(tmpPath, markdown) } catch {}
+    console.log(`cron generate preview: ${markdown.slice(0, 60)}...`)
+    res.json({ ok: true, markdown, path: tmpPath })
+  } catch (err: any) {
+    if (wssRef) wssRef.clients.forEach((ws: any) => { try { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'cron_generate_error', runId: `cron_preview_${Date.now()}`, error: err.message })) } catch {} })
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Scheduler tick — auto-run enabled jobs (Once never auto, 5m/1h/daily/cron via nextRun)
+setInterval(() => {
+  const now = Date.now()
+  for (const job of cronStore.getAll()) {
+    if (!job.enabled || !job.schedule.nextRun) continue
+    if (new Date(job.schedule.nextRun).getTime() <= now) {
+      if (cronRunning === job.id || cronQueue.includes(job.id)) continue
+      console.log(`cron scheduler trigger: ${job.id} "${job.name}" ${job.schedule.type}`)
+      enqueueCron(job.id)
+    }
+  }
+}, 30000)
+
+app.get('/api/cron/:id', (req, res) => {
+  const job = cronStore.getById(req.params.id)
+  if (!job) return res.status(404).json({ error: 'Cron job not found' })
+  res.json(job)
+})
+
+app.put('/api/cron/:id', (req, res) => {
+  const { name, objective, url, markdown, schedule, enabled } = req.body
+  const job = cronStore.update(req.params.id, { name, objective, url, markdown, schedule, enabled })
+  if (!job) return res.status(404).json({ error: 'Cron job not found' })
+  console.log(`cron update: ${job.id}`)
+  res.json(job)
+})
+
+app.delete('/api/cron/:id', (req, res) => {
+  const ok = cronStore.remove(req.params.id)
+  if (!ok) return res.status(404).json({ error: 'Cron job not found' })
+  // remove from queue if queued
+  const idx = cronQueue.indexOf(req.params.id)
+  if (idx !== -1) cronQueue.splice(idx, 1)
+  console.log(`cron delete: ${req.params.id}`)
+  res.json({ ok: true })
+})
+
+app.post('/api/cron/:id/run', (req, res) => {
+  const job = cronStore.getById(req.params.id)
+  if (!job) return res.status(404).json({ error: 'Cron job not found' })
+  const alreadyQueued = cronQueue.includes(job.id)
+  const isRunning = cronRunning === job.id
+  enqueueCron(job.id)
+  console.log(`cron run queued: ${job.id} running=${cronRunning} queue=[${cronQueue.join(',')}]`)
+  res.json({ ok: true, running: cronRunning, queue: [...cronQueue], alreadyQueued, isRunning })
+})
+
+app.post('/api/cron/:id/generate', async (req, res) => {
+  const job = cronStore.getById(req.params.id)
+  if (!job) return res.status(404).json({ error: 'Cron job not found' })
+  const { prompt } = req.body as { prompt?: string }
+  const srcPrompt = (prompt || job.objective || '').trim()
+  if (!srcPrompt) return res.status(400).json({ error: 'prompt required' })
+  try {
+    const markdown = await generateKaneMarkdown(srcPrompt, job.id)
+    const scriptsDir = path.join(__dirname, '..', 'scripts')
+    try { fs.mkdirSync(scriptsDir, { recursive: true }) } catch {}
+    const outPath = path.join(scriptsDir, `cron-${job.id}_test.md`)
+    try { fs.writeFileSync(outPath, markdown) } catch {}
+    const updated = cronStore.update(job.id, { markdown })
+    console.log(`cron generate: ${job.id} -> ${outPath} ${markdown.slice(0, 60)}...`)
+    res.json({ ok: true, markdown, path: outPath, job: updated })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // ============== Kane run (slash /kane) ==============

@@ -402,6 +402,17 @@ export default function ChatContainer({ sessionId, agentId, onSessionChange, onA
                         </div>
                       )}
                       {msg.kaneMeta.test_url && <a href={msg.kaneMeta.test_url} target="_blank" rel="noreferrer" className="underline" style={{ color: 'var(--color-accent-primary)' }}>View details</a>}
+                      {!msg.kaneMeta.test_url && (msg.kaneMeta.run_dir || msg.kaneMeta.session_dir) && (
+                        <a
+                          href={`file:///${String(msg.kaneMeta.run_dir || msg.kaneMeta.session_dir).replace(/\\/g, '/')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline"
+                          style={{ color: 'var(--color-accent-primary)' }}
+                        >
+                          Open kane run folder
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>

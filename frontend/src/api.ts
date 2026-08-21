@@ -326,6 +326,64 @@ export async function deleteVariable(id: string): Promise<{ ok: boolean }> {
   return res.json()
 }
 
+// ============== Cron Jobs ==============
+
+export type CronScheduleType = 'once' | '5m' | '1h' | 'daily' | 'cron'
+
+export interface CronJob {
+  id: string
+  name: string
+  objective: string
+  url: string
+  markdown: string
+  schedule: { type: CronScheduleType; expr?: string; nextRun: string | null }
+  enabled: boolean
+  lastRun?: { at: string; status: 'completed' | 'failed' | 'running'; result?: 'passed' | 'failed'; duration?: number; detail?: string }
+  createdAt: string
+  updatedAt: string
+}
+
+export async function fetchCronJobs(): Promise<{ jobs: CronJob[]; running: string | null; queue: string[] }> {
+  const res = await fetch(`${API_BASE}/cron`)
+  return res.json()
+}
+
+export async function createCronJob(data: { name: string; objective: string; url?: string; markdown?: string; schedule?: { type: CronScheduleType; expr?: string }; enabled?: boolean }): Promise<CronJob> {
+  const res = await fetch(`${API_BASE}/cron`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to create cron job') }
+  return res.json()
+}
+
+export async function updateCronJob(id: string, patch: { name?: string; objective?: string; url?: string; markdown?: string; schedule?: { type: CronScheduleType; expr?: string }; enabled?: boolean }): Promise<CronJob> {
+  const res = await fetch(`${API_BASE}/cron/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to update cron job') }
+  return res.json()
+}
+
+export async function deleteCronJob(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_BASE}/cron/${id}`, { method: 'DELETE' })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to delete cron job') }
+  return res.json()
+}
+
+export async function runCronJob(id: string): Promise<{ ok: boolean; running: string | null; queue: string[] }> {
+  const res = await fetch(`${API_BASE}/cron/${id}/run`, { method: 'POST' })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to run cron job') }
+  return res.json()
+}
+
+export async function generateCronMarkdown(id: string, prompt: string): Promise<{ ok: boolean; markdown: string; path: string; job: CronJob }> {
+  const res = await fetch(`${API_BASE}/cron/${id}/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Generate failed') }
+  return res.json()
+}
+
+export async function generateCronPreview(prompt: string): Promise<{ ok: boolean; markdown: string; path: string }> {
+  const res = await fetch(`${API_BASE}/cron/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Generate failed') }
+  return res.json()
+}
+
 // ============== Kane CLI ==============
 
 export async function fetchKaneStatus(): Promise<{ available: boolean; version: string | null; authenticated: boolean; modelLoaded: boolean; balance: { available: number; total: number } | null }> {

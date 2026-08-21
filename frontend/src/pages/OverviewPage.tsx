@@ -82,9 +82,10 @@ export default function OverviewPage() {
               { label: 'Search + store', url: 'https://www.ebay.com', code: `/kane search for 'headphones', store the first result title as 'first_title'` },
               { label: 'Check BTC price', url: 'https://www.investing.com/crypto', code: `/kane store the BTC price as 'btc_price'` },
               { label: 'Bsky — sign in', url: 'https://bsky.app', code: `/kane sign in with username {{username}} and password {{password}}, save the login result as 'login_result'` },
-              { label: 'Bsky — post gm', url: 'https://bsky.app', code: `/kane click New Post, type 'gm, friend from kane', click Post, save the post url as 'post_url'` },
+              { label: 'Bsky — post gm', url: 'https://bsky.app', code: `/kane click New Post, type 'gm, friend from kane', click the Post button, save the post url as 'post_url'` },
               { label: 'Health check', url: 'http://localhost:3001', code: `/kane assert no console errors and no API calls returned 5xx` },
               { label: 'Amazon — product', url: 'https://www.amazon.com/dp/B08N5WRWNW', code: `/kane assert the price is visible, store the product title as 'product_title'` },
+              { label: 'Thailand — living guide', url: 'https://www.thailandstarterkit.com/moving/living-in-phra-khanong/', code: `/kane navigate to https://www.thailandstarterkit.com/moving/living-in-phra-khanong/, assert the page loads successfully, store the first paragraph text as 'first_paragraph'` },
               { label: 'OpenWeather — api_key', url: 'https://api.openweathermap.org', code: `/kane Call GET https://api.openweathermap.org/data/2.5/weather?q=Bangkok&appid={{api_key}}, save the response as weather, assert {{weather.status}} is 200` },
             ].map((ex) => (
               <div key={ex.label} className="rounded-xl p-3 flex items-start justify-between gap-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--color-border-default)' }}>
