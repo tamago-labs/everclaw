@@ -17,14 +17,18 @@ Everclaw connects two capabilities that are usually separated: local AI inferenc
 
 Use Everclaw to chat with local models, delegate browser tasks, create persistent agents, or schedule recurring workflows with Cron. Tasks can handle everything from app testing and website checks to product monitoring and other repetitive browser work, while credentials and Variables remain stored locally on your machine.
 
+## Quick Links
+
+- [YouTube Demo (3 mins)](https://youtu.be/SHJBV1mG5f0)
+
 ## Highlights
 
-- **QVAC SDK** — Local AI inference on-device. Fully private, offline-capable, no subscriptions.
-- **Supported Models** — 4 builtins (Qwen 1.7B, Qwen 4B, Gemma 4B, Gemma 31B) plus custom models from HuggingFace (`https://`) or local files.
-- **Sessions** — Multiple named conversations with per-session history in `sessions/<id>/messages.json`.
-- **Kane CLI integration** — Drive a real browser from chat and cron. Status, variables, ask_user, generate, and testmd all wired through.
-- **Cron Jobs** — Schedule `kane testmd` runs (Once / 5m / 1h / Daily / Cron) with a serial queue and `Cron: <name>` sessions.
-- **Variables** — `{{username}}`, `{{password}}`, `{{api_key}}` stored in `variables.json`, injected via `--variables-file`, masked as `****` in the UI.
+- **QVAC SDK** — Run AI models locally on-device with private, offline-capable inference and no cloud AI subscription.
+- **Built-in Models** — Qwen 1.7B, Qwen 4B, Gemma 4B, and Gemma 31B, with support for importing custom models from HuggingFace (https://) or local files.
+- **Persistent Sessions** — Create multiple named conversations with per-session history stored locally in `sessions/<id>/messages.json`.
+- **Kane CLI Integration** — Control a real browser directly from chat or scheduled jobs. Status, Variables, ask_user, generate, and testmd are integrated into Everclaw.
+- **Cron Jobs** — Schedule `kane testmd` workflows to run once, every 5 minutes, hourly, daily, or using a custom Cron expression. Jobs execute through a serial queue and create `Cron: <name>` sessions.
+- **Local Variables** — Store values such as `{{username}}`, `{{password}}`, and `{{api_key}}` in `variables.json`. Values are injected through `--variables-file` and masked as `****` in the UI.
 
 ## System Requirements
 
@@ -47,7 +51,7 @@ Use Everclaw to chat with local models, delegate browser tasks, create persisten
 
 ## Quick Start
 
-### Run the published package
+### Install and run
 
 ```bash
 npx @tamago-labs/everclaw
@@ -151,26 +155,28 @@ Everclaw surfaces this in Overview (Kane CLI card). If not installed or not auth
 
 ## Kane CLI Integration
 
-Everclaw does not bundle kane-cli. It detects the local install, polls status, and wraps `generate` and `testmd run` for chat and cron. All runs are headless; `ask_user` is auto-answered from Variables when possible and otherwise cancelled after 30s.
+Everclaw does not bundle kane-cli. It detects the local install, polls status, and wraps `generate` and `testmd run` for chat and Cron Jobs. All runs are headless.
+
+For `ask_user`, behavior differs by context. In chat, Kane shows a prompt in the UI with a 20s countdown — auto-filled from Variables when available, otherwise the user can answer or cancel. In Cron Jobs there is no user present, so `ask_user` is auto-answered from Variables when possible and otherwise cancelled after 30s to avoid freezing.
 
 | Feature | What it does | Where in code |
 |---------|--------------|---------------|
-| **Status polling** | Checks `kane-cli --version`, `whoami`, `balance` every 30s, caches result, serves at `GET /api/kane/status` | `src/kaneCli.ts:3-58`, `src/index.ts:1112` |
-| **Overview card** | Shows Installed, Authenticated, Balance with green/red checks | `frontend/src/pages/OverviewPage.tsx:92-110`, `frontend/src/api.ts:389` |
-| **/kane in chat** | `/kane <task>` slash triggers URL modal, runs `kane-cli run --agent --headless --url <site> --variables-file <tmp>` | `frontend/src/components/chat/ChatContainer.tsx`, `src/index.ts:891-1030`, `src/variableStore.ts` |
-| **Variables** | `{{name}}` resolved to values, written to temp `kane-vars-*.json`, passed via `--variables-file` | `src/variableStore.ts`, `src/index.ts:910-920, 750-760` |
-| **ask_user bridge** | Intercepts `ask_user` prompts, auto-fills `username`+`password` from Variables, otherwise cancels after 30s | `src/index.ts:940-990` (chat), `src/index.ts:760-820` (cron) |
-| **Ask_user modal** | For chat runs, shows WS `kane_ask` modal with 20s countdown and Send/Cancel to `POST /api/kane/respond` | `frontend/src/components/chat/ChatContainer.tsx`, `src/index.ts:1057` |
-| **Markdown generation** | `AI Generate` runs `kane-cli generate "<prompt>" --agent` then `generate --save --req <id> --agent`, picks suite by `suite_dir` then folder name containing request id, then newest mtime | `src/index.ts:621-810`, `frontend/src/pages/CronPage.tsx:256-278` |
-| **Progress streaming** | `generate_progress` pct and thinking streamed via WS `cron_generate_*` to drawer bar | `src/index.ts:698, 640-660`, `frontend/src/pages/CronPage.tsx:237-252` |
-| **testmd run** | `kane testmd run <tmpMd> --agent --url <runUrl> --timeout 600 --headless --variables-file <tmp>`; tmp filename must end `_test.md` | `src/index.ts:730-770`, `scripts/1-everclaw-chat_test.md` |
-| **runUrl resolution** | Frontmatter `url:` in markdown takes precedence, then job `url`, then `http://localhost:3001` | `src/index.ts:740-750` |
-| **Suite picking** | Filters to candidates from this generate only; prefers primary scenario tokens (`sid`, `scode`, `title`) | `src/index.ts:751-790` |
-| **Cron queue** | Serial execution: one `running`, rest `queue`; enqueue on `POST /api/cron/:id/run` | `src/index.ts:588-603`, `src/cronStore.ts` |
-| **Cron sessions** | Each run creates `Cron: <name>` session with kane `summary`/`one_liner` plus `kaneMeta` (`share_url`/`test_url`) | `src/index.ts:560-586` |
-| **Result card** | Chat and cron sessions render Kane result card with `test_url` or `file://` run-folder fallback | `frontend/src/components/chat/ChatContainer.tsx:392-410` |
-| **Summarization** | kane's own `summary`/`one_liner` plus optional local AI refine via `POST /api/ai/summarize` | `src/index.ts:570-585` |
-| **Self-contained guard** | Drawer warns jobs run on their own and can't ask for input — if they do, they'll freeze | `frontend/src/pages/CronPage.tsx:389` |
+| **Status polling** | Checks `kane-cli --version`, `whoami`, `balance` every 30s, caches result, serves at `GET /api/kane/status` | [`src/kaneCli.ts:3-58`](https://github.com/tamago-labs/everclaw/blob/main/src/kaneCli.ts#L3-L58), [`src/index.ts:1112`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L1112) |
+| **Overview card** | Shows Installed, Authenticated, Balance with green/red checks | [`frontend/src/pages/OverviewPage.tsx:92-110`](https://github.com/tamago-labs/everclaw/blob/main/frontend/src/pages/OverviewPage.tsx#L92-L110), [`frontend/src/api.ts:389`](https://github.com/tamago-labs/everclaw/blob/main/frontend/src/api.ts#L389) |
+| **/kane in chat** | `/kane <task>` slash triggers URL modal, runs `kane-cli run --agent --headless --url <site> --variables-file <tmp>` | [`frontend/src/components/chat/ChatContainer.tsx`](https://github.com/tamago-labs/everclaw/blob/main/frontend/src/components/chat/ChatContainer.tsx), [`src/index.ts:891-1030`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L891-L1030), [`src/variableStore.ts`](https://github.com/tamago-labs/everclaw/blob/main/src/variableStore.ts) |
+| **Variables** | `{{name}}` resolved to values, written to temp `kane-vars-*.json`, passed via `--variables-file` | [`src/variableStore.ts`](https://github.com/tamago-labs/everclaw/blob/main/src/variableStore.ts), [`src/index.ts:910-920`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L910-L920), [`src/index.ts:750-760`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L750-L760) |
+| **ask_user bridge** | Intercepts `ask_user` prompts, auto-fills `username`+`password` from Variables, otherwise cancels after 30s | [`src/index.ts:940-990`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L940-L990) (chat), [`src/index.ts:760-820`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L760-L820) (cron) |
+| **Ask_user modal** | For chat runs, shows WS `kane_ask` modal with 20s countdown and Send/Cancel to `POST /api/kane/respond` | [`frontend/src/components/chat/ChatContainer.tsx`](https://github.com/tamago-labs/everclaw/blob/main/frontend/src/components/chat/ChatContainer.tsx), [`src/index.ts:1057`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L1057) |
+| **Markdown generation** | `AI Generate` runs `kane-cli generate "<prompt>" --agent` then `generate --save --req <id> --agent`, picks suite by `suite_dir` then folder name containing request id, then newest mtime | [`src/index.ts:621-810`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L621-L810), [`frontend/src/pages/CronPage.tsx:256-278`](https://github.com/tamago-labs/everclaw/blob/main/frontend/src/pages/CronPage.tsx#L256-L278) |
+| **Progress streaming** | `generate_progress` pct and thinking streamed via WS `cron_generate_*` to drawer bar | [`src/index.ts:698`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L698), [`src/index.ts:640-660`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L640-L660), [`frontend/src/pages/CronPage.tsx:237-252`](https://github.com/tamago-labs/everclaw/blob/main/frontend/src/pages/CronPage.tsx#L237-L252) |
+| **testmd run** | `kane testmd run <tmpMd> --agent --url <runUrl> --timeout 600 --headless --variables-file <tmp>`; tmp filename must end `_test.md` | [`src/index.ts:730-770`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L730-L770), [`scripts/1-everclaw-chat_test.md`](https://github.com/tamago-labs/everclaw/blob/main/scripts/1-everclaw-chat_test.md) |
+| **runUrl resolution** | Frontmatter `url:` in markdown takes precedence, then job `url`, then `http://localhost:3001` | [`src/index.ts:740-750`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L740-L750) |
+| **Suite picking** | Filters to candidates from this generate only; prefers primary scenario tokens (`sid`, `scode`, `title`) | [`src/index.ts:751-790`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L751-L790) |
+| **Cron queue** | Serial execution: one `running`, rest `queue`; enqueue on `POST /api/cron/:id/run` | [`src/index.ts:588-603`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L588-L603), [`src/cronStore.ts`](https://github.com/tamago-labs/everclaw/blob/main/src/cronStore.ts) |
+| **Cron sessions** | Each run creates `Cron: <name>` session with kane `summary`/`one_liner` plus `kaneMeta` (`share_url`/`test_url`) | [`src/index.ts:560-586`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L560-L586) |
+| **Result card** | Chat and cron sessions render Kane result card with `test_url` or `file://` run-folder fallback | [`frontend/src/components/chat/ChatContainer.tsx:392-410`](https://github.com/tamago-labs/everclaw/blob/main/frontend/src/components/chat/ChatContainer.tsx#L392-L410) |
+| **Summarization** | kane's own `summary`/`one_liner` plus optional local AI refine via `POST /api/ai/summarize` | [`src/index.ts:570-585`](https://github.com/tamago-labs/everclaw/blob/main/src/index.ts#L570-L585) |
+| **Self-contained guard** | Drawer warns jobs run on their own and can't ask for input — if they do, they'll freeze | [`frontend/src/pages/CronPage.tsx:389`](https://github.com/tamago-labs/everclaw/blob/main/frontend/src/pages/CronPage.tsx#L389) |
 
 All kane runs set `KANE_CLI_USER_AGENT=everclaw`.
 
@@ -245,6 +251,10 @@ GET    /api/kane/status                  # kane-cli status (available, version, 
 - **Backend** — Node + Express + QVAC SDK (local models)
 - **Frontend** — React + Vite + Tailwind
 - **Browser agent** — kane-cli (status surfaced in UI, runs externally)
+
+## License
+
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
 
 ---
 
